@@ -14,6 +14,7 @@ namespace IBS.DTOs
         public int? CounterpartyId { get; set; }
         public string? CounterpartyName { get; set; }
         public string Company { get; set; } = string.Empty;
+        public string ModuleType { get; set; } = string.Empty;
         public decimal Debit { get; set; }
         public decimal Credit { get; set; }
         public int AccountId { get; set; }
