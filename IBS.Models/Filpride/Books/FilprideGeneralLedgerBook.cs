@@ -27,6 +27,9 @@ namespace IBS.Models.Filpride.Books
 
         public string Description { get; set; } = null!;
 
+        [Column(TypeName = "varchar(50)")]
+        public string? Company { get; set; }
+
         [DisplayFormat(DataFormatString = "{0:#,##0.0000;(#,##0.0000)}", ApplyFormatInEditMode = true)]
         [Column(TypeName = "numeric(18,4)")]
         public decimal Debit { get; set; }
@@ -48,6 +51,11 @@ namespace IBS.Models.Filpride.Books
 
         [Column(TypeName = "varchar(50)")]
         public string ModuleType { get; set; } = string.Empty;
+
+        public Guid? ImportBatchId { get; set; }
+
+        [ForeignKey(nameof(ImportBatchId))]
+        public FilprideGlImportBatch? ImportBatch { get; set; }
 
         #region Chart Of Account Properties
 
