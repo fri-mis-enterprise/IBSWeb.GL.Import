@@ -373,6 +373,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
             {
                 new() { Header = "ACCOUNT NUMBER", ValueSelector = c => ((FilprideChartOfAccount)c).AccountNumber },
                 new() { Header = "ACCOUNT NAME", ValueSelector = c => ((FilprideChartOfAccount)c).AccountName },
+                new() { Header = "PRIORITY", ValueSelector = c => ((FilprideChartOfAccount)c).Priority },
                 new() { Header = "MAIN", ValueSelector = c => ((FilprideChartOfAccount)c).IsMain },
                 new() { Header = "ACCOUNT TYPE", ValueSelector = c => ((FilprideChartOfAccount)c).AccountType },
                 new() { Header = "NORMAL BALANCE", ValueSelector = c => ((FilprideChartOfAccount)c).NormalBalance },
