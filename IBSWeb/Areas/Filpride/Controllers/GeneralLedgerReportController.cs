@@ -440,7 +440,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 ChartOfAccounts = await _dbContext.FilprideChartOfAccounts
                     .IgnoreQueryFilters()
                     .Where(coa => !coa.HasChildren)
-                    .OrderBy(coa => coa.AccountNumber)
+                    .OrderBy(coa => string.IsNullOrEmpty(coa.Priority)).ThenBy(coa => coa.Priority ?? string.Empty).ThenBy(coa => coa.AccountNumber)
                     .Select(s => new SelectListItem
                     {
                         Value = s.AccountNumber + " " + s.AccountName,
@@ -470,6 +470,8 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     .FirstOrDefault();
 
                 var generalLedgerByAccountNo = await _dbContext.FilprideGeneralLedgerBooks
+                    .IgnoreQueryFilters()
+                    .Include(g => g.Account)
                     .Where(g =>
                         g.Date >= model.DateFrom && g.Date <= model.DateTo &&
                         (selectedAccountNo == null || g.AccountNo == selectedAccountNo) &&
@@ -584,7 +586,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
 
                             #region -- Loop to Show Records
 
-                            foreach (var grouped in generalLedgerByAccountNo.OrderBy(g => g.AccountNo).GroupBy(g => g.AccountTitle))
+                            foreach (var grouped in generalLedgerByAccountNo.OrderBy(g => string.IsNullOrEmpty(g.Account.Priority)).ThenBy(g => g.Account.Priority ?? string.Empty).ThenBy(g => g.AccountNo).GroupBy(g => g.AccountTitle))
                             {
                                 balance = 0;
 
@@ -712,6 +714,8 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     .GetAsyncIgnoreQueryFilters(coa => selectedAccountNo != null && coa.AccountNumber == selectedAccountNo, cancellationToken);
 
                 var generalLedgerByAccountNo = await _dbContext.FilprideGeneralLedgerBooks
+                    .IgnoreQueryFilters()
+                    .Include(g => g.Account)
                     .Where(g =>
                         g.Date >= dateFrom && g.Date <= dateTo &&
                         (selectedAccount == null || g.AccountNo == selectedAccount.AccountNumber) &&
@@ -810,7 +814,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
 
                 foreach (var grouped in generalLedgerByAccountNo
                     .Where(g => !string.IsNullOrEmpty(g.AccountNo))
-                    .OrderBy(g => g.AccountNo)
+                    .OrderBy(g => string.IsNullOrEmpty(g.Account.Priority)).ThenBy(g => g.Account.Priority ?? string.Empty).ThenBy(g => g.AccountNo)
                     .GroupBy(g => g.AccountNo))
                 {
                     var accountNo = grouped.Key;
@@ -1713,7 +1717,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 ChartOfAccounts = await _dbContext.FilprideChartOfAccounts
                     .IgnoreQueryFilters()
                     .Where(coa => !coa.HasChildren)
-                    .OrderBy(coa => coa.AccountNumber)
+                    .OrderBy(coa => string.IsNullOrEmpty(coa.Priority)).ThenBy(coa => coa.Priority ?? string.Empty).ThenBy(coa => coa.AccountNumber)
                     .Select(s => new SelectListItem
                     {
                         Value = s.AccountNumber + " " + s.AccountName,
@@ -1760,7 +1764,8 @@ namespace IBSWeb.Areas.Filpride.Controllers
                         s.PeriodEndDate >= dateFrom &&
                         s.PeriodStartDate <= dateTo &&
                         (selectedAccountNo == null || s.Account.AccountNumber == selectedAccountNo))
-                    .OrderBy(s => s.Account.AccountNumber)
+                    .OrderBy(s => string.IsNullOrEmpty(s.Account.Priority)).ThenBy(s => s.Account.Priority ?? string.Empty)
+                    .ThenBy(s => s.Account.AccountNumber)
                     .ThenBy(s => s.SubAccountName)
                     .ThenBy(s => s.PeriodStartDate)
                     .ToListAsync(cancellationToken);

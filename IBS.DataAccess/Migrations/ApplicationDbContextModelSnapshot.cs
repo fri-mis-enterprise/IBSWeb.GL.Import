@@ -4308,6 +4308,11 @@ namespace IBS.DataAccess.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("parent_account_id");
 
+                    b.Property<string>("Priority")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("priority");
+
                     b.HasKey("AccountId")
                         .HasName("pk_filpride_chart_of_accounts");
 

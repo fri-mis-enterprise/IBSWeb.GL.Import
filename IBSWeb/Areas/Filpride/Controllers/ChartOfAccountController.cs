@@ -62,13 +62,14 @@ namespace IBSWeb.Areas.Filpride.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(int parentId, string accountName, bool showHidden = false, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> Create(int parentId, string accountName, string? priority, bool showHidden = false, CancellationToken cancellationToken = default)
         {
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
             try
             {
                 var normalizedAccountName = NormalizeAccountName(accountName);
+                priority = string.IsNullOrWhiteSpace(priority) ? null : priority.Trim();
                 var parentAccount = await _unitOfWork.FilprideChartOfAccount
                     .GetAsyncIgnoreQueryFilters(c => c.AccountId == parentId, cancellationToken);
 
@@ -89,6 +90,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     AccountType = parentAccount.AccountType,
                     NormalBalance = parentAccount.NormalBalance,
                     AccountName = normalizedAccountName,
+                    Priority = priority,
                     ParentAccountId = parentId,
                     CreatedBy = GetUserFullName(),
                     Level = levelToCreate,
@@ -126,7 +128,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int accountId, string accountName, bool showHidden = false, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> Edit(int accountId, string accountName, string? priority, bool showHidden = false, CancellationToken cancellationToken = default)
         {
             var existingAccount = await _unitOfWork.FilprideChartOfAccount
                 .GetAsyncIgnoreQueryFilters(x => x.AccountId == accountId, cancellationToken);
@@ -141,13 +143,16 @@ namespace IBSWeb.Areas.Filpride.Controllers
             try
             {
                 var normalizedAccountName = NormalizeAccountName(accountName);
-                if (string.Equals(existingAccount.AccountName, normalizedAccountName, StringComparison.Ordinal))
+                priority = string.IsNullOrWhiteSpace(priority) ? null : priority.Trim();
+                if (string.Equals(existingAccount.AccountName, normalizedAccountName, StringComparison.Ordinal) &&
+                    string.Equals(existingAccount.Priority, priority, StringComparison.Ordinal))
                 {
                     TempData["success"] = "No changes were made.";
                     return Json(new { redirectUrl = Url.Action("Index", "ChartOfAccount", new { area = "Filpride", showHidden }) });
                 }
 
                 existingAccount.AccountName = normalizedAccountName;
+                existingAccount.Priority = priority;
                 existingAccount.EditedBy = GetUserFullName();
                 existingAccount.EditedDate = DateTimeHelper.GetCurrentPhilippineTime();
                 await _unitOfWork.SaveAsync(cancellationToken);
@@ -259,6 +264,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                         .Where(s =>
                             (s.AccountNumber != null && s.AccountNumber.ToLower().Contains(searchValue)) ||
                             s.AccountName.ToLower().Contains(searchValue) ||
+                            (s.Priority != null && s.Priority.ToLower().Contains(searchValue)) ||
                             (s.AccountType != null && s.AccountType.ToLower().Contains(searchValue)) ||
                             (s.NormalBalance != null && s.NormalBalance.ToLower().Contains(searchValue)) ||
                             (s.IsHidden ? "hidden" : "visible").Contains(searchValue) ||
@@ -302,6 +308,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                         x.AccountId,
                         x.AccountNumber,
                         x.AccountName,
+                        x.Priority,
                         x.AccountType,
                         x.NormalBalance,
                         x.IsHidden,

@@ -1172,7 +1172,9 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 ChartOfAccounts = await _dbContext.FilprideChartOfAccounts
                     .IgnoreQueryFilters()
                     .Where(coa => !coa.HasChildren)
-                    .OrderBy(coa => coa.AccountNumber)
+                    .OrderBy(coa => string.IsNullOrEmpty(coa.Priority))
+                    .ThenBy(coa => coa.Priority ?? string.Empty)
+                    .ThenBy(coa => coa.AccountNumber)
                     .Select(s => new SelectListItem
                     {
                         Value = s.AccountNumber + " " + s.AccountName,
@@ -1197,7 +1199,9 @@ namespace IBSWeb.Areas.Filpride.Controllers
             model.ChartOfAccounts = await _dbContext.FilprideChartOfAccounts
                 .IgnoreQueryFilters()
                 .Where(coa => !coa.HasChildren)
-                .OrderBy(coa => coa.AccountNumber)
+                .OrderBy(coa => string.IsNullOrEmpty(coa.Priority))
+                .ThenBy(coa => coa.Priority ?? string.Empty)
+                .ThenBy(coa => coa.AccountNumber)
                 .Select(s => new SelectListItem
                 {
                     Value = s.AccountNumber + " " + s.AccountName, Text = s.AccountNumber + " " + s.AccountName

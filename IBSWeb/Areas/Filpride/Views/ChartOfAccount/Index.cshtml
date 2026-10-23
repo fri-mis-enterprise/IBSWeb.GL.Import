@@ -1,4 +1,4 @@
-﻿@model List<FilprideChartOfAccount>
+@model List<FilprideChartOfAccount>
 
 @{
     ViewData["Title"] = "Chart of Account";
@@ -48,6 +48,7 @@
                                     aria-expanded="false"
                                     aria-controls="accordion-@Html.DisplayFor(model => l1.AccountNumber)">
                                 L1: @Html.DisplayFor(obj => l1.AccountName) - @Html.DisplayFor(obj => l1.AccountNumber)
+                                <span class="badge bg-light text-dark ms-2">Priority: @l1.Priority</span>
                                 @if (l1.IsHidden)
                                 {
                                     <span class="badge bg-secondary ms-2">Hidden</span>
@@ -63,6 +64,13 @@
                                         data-is-hidden="@l1.IsHidden.ToString().ToLowerInvariant()">
                                     @(l1.IsHidden ? "Unhide Account" : "Hide Account")
                                 </button>
+                                <button class="btn btn-light mb-3 editAccount"
+                                        data-account-id="@l1.AccountId"
+                                        data-account-name="@l1.AccountName"
+                                        data-account-number="@l1.AccountNumber"
+                                        data-priority="@l1.Priority">
+                                    Edit
+                                </button>
 
                                 <div class="accordion" id="LGroup-@l1.AccountNumber">
                                     @foreach (var l2 in l1.Children.OrderBy(coa => coa.AccountNumber))
@@ -76,6 +84,7 @@
                                                             aria-expanded="false"
                                                             aria-controls="accordion-@Html.DisplayFor(model => l2.AccountNumber)">
                                                         L2: @Html.DisplayFor(obj => l2.AccountName) - @Html.DisplayFor(obj => l2.AccountNumber)
+                                                        <span class="badge bg-light text-dark ms-2">Priority: @l2.Priority</span>
                                                         @if (l2.IsHidden)
                                                         {
                                                             <span class="badge bg-secondary ms-2">Hidden</span>
@@ -91,6 +100,13 @@
                                                                 data-is-hidden="@l2.IsHidden.ToString().ToLowerInvariant()">
                                                             @(l2.IsHidden ? "Unhide Account" : "Hide Account")
                                                         </button>
+                                                        <button class="btn btn-light mb-3 editAccount"
+                                                                data-account-id="@l2.AccountId"
+                                                                data-account-name="@l2.AccountName"
+                                                                data-account-number="@l2.AccountNumber"
+                                                                data-priority="@l2.Priority">
+                                                            Edit
+                                                        </button>
 
                                                         <div class="accordion" id="LGroup-@l2.AccountNumber">
                                                             @foreach (var l3 in l2.Children.OrderBy(coa => coa.AccountNumber))
@@ -104,6 +120,7 @@
                                                                                     aria-expanded="false"
                                                                                     aria-controls="accordion-@Html.DisplayFor(model => l3.AccountNumber)">
                                                                                 L3: @Html.DisplayFor(obj => l3.AccountName) - @Html.DisplayFor(obj => l3.AccountNumber)
+                                                                                <span class="badge bg-light text-dark ms-2">Priority: @l3.Priority</span>
                                                                                 @if (l3.IsHidden)
                                                                                 {
                                                                                     <span class="badge bg-secondary ms-2">Hidden</span>
@@ -118,6 +135,13 @@
                                                                                         data-account-id="@l3.AccountId"
                                                                                         data-is-hidden="@l3.IsHidden.ToString().ToLowerInvariant()">
                                                                                     @(l3.IsHidden ? "Unhide Account" : "Hide Account")
+                                                                                </button>
+                                                                                <button class="btn btn-light mb-3 editAccount"
+                                                                                        data-account-id="@l3.AccountId"
+                                                                                        data-account-name="@l3.AccountName"
+                                                                                        data-account-number="@l3.AccountNumber"
+                                                                                        data-priority="@l3.Priority">
+                                                                                    Edit
                                                                                 </button>
 
                                                                                 <button class="btn btn-primary mb-3 createAccount"
@@ -139,6 +163,7 @@
                                                                                                             aria-expanded="false"
                                                                                                             aria-controls="accordion-@Html.DisplayFor(model => l4.AccountNumber)">
                                                                                                         L4: @Html.DisplayFor(obj => l4.AccountName) - @Html.DisplayFor(obj => l4.AccountNumber)
+                                                                                                        <span class="badge bg-light text-dark ms-2">Priority: @l4.Priority</span>
                                                                                                         @if (l4.IsHidden)
                                                                                                         {
                                                                                                             <span class="badge bg-secondary ms-2">Hidden</span>
@@ -174,6 +199,7 @@
                                                                                                                                     aria-expanded="false"
                                                                                                                                     aria-controls="accordion-@Html.DisplayFor(model => l5.AccountNumber)">
                                                                                                                                 L5: @Html.DisplayFor(obj => l5.AccountName) - @Html.DisplayFor(obj => l5.AccountNumber)
+                                                                                                                                <span class="badge bg-light text-dark ms-2">Priority: @l5.Priority</span>
                                                                                                                                 @if (l5.IsHidden)
                                                                                                                                 {
                                                                                                                                     <span class="badge bg-secondary ms-2">Hidden</span>
@@ -197,7 +223,8 @@
                                                                                                                         <button class="btn btn-light mb-3 editAccount col-12"
                                                                                                                                 data-account-id="@l5.AccountId"
                                                                                                                                 data-account-name="@l5.AccountName"
-                                                                                                                                data-account-number="@l5.AccountNumber">
+                                                                                                                                data-account-number="@l5.AccountNumber"
+                                                                                                                                data-priority="@l5.Priority">
                                                                                                                             Edit
                                                                                                                         </button>
                                                                                                                     </div>
@@ -212,7 +239,8 @@
                                                                                                 <button class="btn btn-light mb-3 editAccount col-12"
                                                                                                         data-account-id="@l4.AccountId"
                                                                                                         data-account-name="@l4.AccountName"
-                                                                                                        data-account-number="@l4.AccountNumber">
+                                                                                                        data-account-number="@l4.AccountNumber"
+                                                                                                        data-priority="@l4.Priority">
                                                                                                     Edit
                                                                                                 </button>
                                                                                             </div>
@@ -276,10 +304,10 @@
                 let nextLevel = $(this).data('next-level');
 
                 Swal.fire({
-                    title: `Create Level ${nextLevel} Account`,
-                    text: `Parent account: ${parentNumber}`,
+                    title: `Create Level ${nextLevel} Account (${parentNumber})`,
                     input: 'text',
                     inputLabel: 'Account name',
+                    html: '<label for="accountPriority">Priority (optional)</label><input id="accountPriority" class="swal2-input" maxlength="50" placeholder="e.g. 103.1">',
                     inputPlaceholder: 'Enter account name',
                     inputAttributes: {
                         autocapitalize: 'off'
@@ -293,11 +321,12 @@
                             Swal.showValidationMessage('Account name is required');
                             return false;
                         }
-                        return normalizedAccountName;
+                        const priority = document.getElementById('accountPriority').value.trim();
+                        return { accountName: normalizedAccountName, priority: priority };
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        let accountName = result.value;
+                        let { accountName, priority } = result.value;
 
                         $.ajax({
                             url: '@Url.Action("Create", "ChartOfAccount", new { area = "Filpride" })',
@@ -306,6 +335,7 @@
                                 __RequestVerificationToken: requestVerificationToken,
                                 parentId: parentId,
                                 accountName: accountName,
+                                priority: priority,
                                 showHidden: showHidden
                             },
                             success: function (response) {
@@ -329,12 +359,15 @@
                 let accountId = $(this).data('account-id');
                 let accountName = $(this).data('account-name');
                 let accountNumber = $(this).data('account-number');
+                let priority = $(this).attr('data-priority') || '';
 
                 Swal.fire({
                     title: `Edit Account ${accountNumber}`,
                     input: 'text',
                     inputLabel: 'Account name',
+                    html: '<label for="accountPriority">Priority (optional)</label><input id="accountPriority" class="swal2-input" maxlength="50" placeholder="e.g. 103.1">',
                     inputValue: accountName,
+                    didOpen: () => { document.getElementById('accountPriority').value = priority; },
                     inputAttributes: {
                         autocapitalize: 'off'
                     },
@@ -347,11 +380,12 @@
                             Swal.showValidationMessage('Account name cannot be blank');
                             return false;
                         }
-                        return normalizedAccountName;
+                        const priority = document.getElementById('accountPriority').value.trim();
+                        return { accountName: normalizedAccountName, priority: priority };
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        let accountName = result.value;
+                        let { accountName, priority } = result.value;
 
                         $.ajax({
                             url: '@Url.Action("Edit", "ChartOfAccount", new { area = "Filpride" })',
@@ -360,6 +394,7 @@
                                 __RequestVerificationToken: requestVerificationToken,
                                 accountId: accountId,
                                 accountName: accountName,
+                                priority: priority,
                                 showHidden: showHidden
                             },
                             success: function (response) {

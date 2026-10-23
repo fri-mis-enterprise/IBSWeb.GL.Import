@@ -20,6 +20,9 @@ namespace IBS.Models.Filpride.MasterFile
         [StringLength(200)]
         public string AccountName { get; set; } = null!;
 
+        [StringLength(50)]
+        public string? Priority { get; set; }
+
         [StringLength(25)]
         [Display(Name = "Account Type")]
         public string? AccountType { get; set; }

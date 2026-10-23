@@ -34,6 +34,8 @@ namespace IBS.DataAccess.Repository.Filpride
                 .OrderBy(i => i.ModuleType)
                 .ThenBy(i => i.Date)
                 .ThenBy(i => i.Reference)
+                .ThenBy(i => string.IsNullOrEmpty(i.Account.Priority)).ThenBy(i => i.Account.Priority ?? string.Empty)
+                .ThenBy(i => i.AccountNo)
                 .ThenBy(i => i.GeneralLedgerBookId)
                 .ToListAsync(cancellationToken);
 

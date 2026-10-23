@@ -95,7 +95,8 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 var chartOfAccounts = await _dbContext.FilprideChartOfAccounts
                     .IgnoreQueryFilters()
                     .Include(coa => coa.Children)
-                    .OrderBy(coa => coa.AccountNumber)
+                    .OrderBy(a => string.IsNullOrEmpty(a.Priority)).ThenBy(a => a.Priority ?? string.Empty)
+                    .ThenBy(a => a.AccountNumber)
                     .Where(coa => coa.FinancialStatementType == nameof(FinancialStatementType.PnL))
                     .ToListAsync(cancellationToken);
 
@@ -190,18 +191,18 @@ namespace IBSWeb.Areas.Filpride.Controllers
 
                                 table.Cell().ColumnSpan(6).Border(0.5f).Padding(3).Text(record.AccountName);
 
-                                foreach (var levelTwo in record.Children.OrderBy(l => l.AccountNumber))
+                                foreach (var levelTwo in record.Children.OrderBy(l => string.IsNullOrEmpty(l.Priority)).ThenBy(l => l.Priority ?? string.Empty).ThenBy(l => l.AccountNumber))
                                 {
                                     decimal subTotal = 0;
                                     table.Cell().BorderLeft(0.5f).BorderBottom(0.5f);
                                     table.Cell().ColumnSpan(5).BorderTop(0.5f).BorderRight(0.5f).BorderBottom(0.5f).Padding(3).Text(levelTwo.AccountName);
 
-                                    foreach (var levelThree in levelTwo.Children.OrderBy(l => l.AccountNumber))
+                                    foreach (var levelThree in levelTwo.Children.OrderBy(l => string.IsNullOrEmpty(l.Priority)).ThenBy(l => l.Priority ?? string.Empty).ThenBy(l => l.AccountNumber))
                                     {
                                         table.Cell().ColumnSpan(2).BorderLeft(0.5f).BorderBottom(0.5f);
                                         table.Cell().ColumnSpan(4).BorderTop(0.5f).BorderRight(0.5f).BorderBottom(0.5f).Padding(3).Text(levelThree.AccountName);
 
-                                        foreach (var levelFour in levelThree.Children.OrderBy(l => l.AccountNumber))
+                                        foreach (var levelFour in levelThree.Children.OrderBy(l => string.IsNullOrEmpty(l.Priority)).ThenBy(l => l.Priority ?? string.Empty).ThenBy(l => l.AccountNumber))
                                         {
                                             table.Cell().ColumnSpan(3).BorderLeft(0.5f).BorderBottom(0.5f);
                                             table.Cell().ColumnSpan(2).BorderTop(0.5f).BorderRight(0.5f).BorderBottom(0.5f).Padding(3).Text(levelFour.AccountName);
@@ -213,7 +214,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                                             table.Cell().Border(0.5f).Padding(3).AlignRight().Text(levelFourBalance != 0 ? levelFourBalance < 0 ? $"({Math.Abs(levelFourBalance).ToString(SD.Two_Decimal_Format)})" : levelFourBalance.ToString(SD.Two_Decimal_Format) : null).FontColor(levelFourBalance < 0 ? Colors.Red.Medium : Colors.Black);
                                             subTotal += levelFourBalance;
 
-                                            foreach (var levelFive in levelFour.Children.OrderBy(l => l.AccountNumber))
+                                            foreach (var levelFive in levelFour.Children.OrderBy(l => string.IsNullOrEmpty(l.Priority)).ThenBy(l => l.Priority ?? string.Empty).ThenBy(l => l.AccountNumber))
                                             {
                                                 table.Cell().ColumnSpan(4).BorderLeft(0.5f).BorderBottom(0.5f);
                                                 table.Cell().BorderTop(0.5f).BorderRight(0.5f).BorderBottom(0.5f).Padding(3).Text(levelFive.AccountName);
@@ -333,7 +334,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     .IgnoreQueryFilters()
                     .Include(coa => coa.Children)
                     .Where(coa => coa.FinancialStatementType == nameof(FinancialStatementType.PnL))
-                    .OrderBy(coa => coa.AccountNumber)
+                    .OrderBy(a => string.IsNullOrEmpty(a.Priority)).ThenBy(a => a.Priority ?? string.Empty).ThenBy(a => a.AccountNumber)
                     .ToListAsync(cancellationToken);
 
                 var nibitsForYearToDate = await _dbContext.FilprideMonthlyNibits
@@ -461,24 +462,24 @@ namespace IBSWeb.Areas.Filpride.Controllers
 
                     bool mainHeadingWritten = false;
 
-                    foreach (var levelTwo in account.Children.OrderBy(l => l.AccountNumber))
+                    foreach (var levelTwo in account.Children.OrderBy(l => string.IsNullOrEmpty(l.Priority)).ThenBy(l => l.Priority ?? string.Empty).ThenBy(l => l.AccountNumber))
                     {
                         decimal subTotalMonthToDate = 0;
                         decimal subTotalYearToDate = 0;
                         bool levelTwoHeadingWritten = false;
 
-                        foreach (var levelThree in levelTwo.Children.OrderBy(l => l.AccountNumber))
+                        foreach (var levelThree in levelTwo.Children.OrderBy(l => string.IsNullOrEmpty(l.Priority)).ThenBy(l => l.Priority ?? string.Empty).ThenBy(l => l.AccountNumber))
                         {
                             bool levelThreeHeadingWritten = false;
 
-                            foreach (var levelFour in levelThree.Children.OrderBy(l => l.AccountNumber))
+                            foreach (var levelFour in levelThree.Children.OrderBy(l => string.IsNullOrEmpty(l.Priority)).ThenBy(l => l.Priority ?? string.Empty).ThenBy(l => l.AccountNumber))
                             {
                                 decimal levelFourMonthToDateBalance = monthToDateAccountBalances[levelFour.AccountNumber].Sum();
                                 decimal levelFourYearToDateBalance = yearToDateAccountBalances[levelFour.AccountNumber].Sum();
                                 var visibleLevelFiveAccounts = levelFour.Children
                                     .Where(l => monthToDateAccountBalances[l.AccountNumber].Sum() != 0 ||
                                                 yearToDateAccountBalances[l.AccountNumber].Sum() != 0)
-                                    .OrderBy(l => l.AccountNumber)
+                                    .OrderBy(a => string.IsNullOrEmpty(a.Priority)).ThenBy(a => a.Priority ?? string.Empty).ThenBy(a => a.AccountNumber)
                                     .ToList();
 
                                 if (levelFourMonthToDateBalance == 0 &&
@@ -1048,7 +1049,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
 
                 var chartOfAccounts = await _dbContext.FilprideChartOfAccounts
                     .IgnoreQueryFilters()
-                    .OrderBy(coa => coa.AccountNumber)
+                    .OrderBy(a => string.IsNullOrEmpty(a.Priority)).ThenBy(a => a.Priority ?? string.Empty).ThenBy(a => a.AccountNumber)
                     .ToListAsync(cancellationToken);
 
                 if (!currentLedgers.Any() || !priorLedgers.Any())
@@ -1145,7 +1146,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                                  decimal totalEndingDr = 0;
                                  decimal totalEndingCr = 0;
 
-                                foreach (var record in chartOfAccounts.OrderBy(a => a.AccountNumber))
+                                foreach (var record in chartOfAccounts.OrderBy(a => string.IsNullOrEmpty(a.Priority)).ThenBy(a => a.Priority ?? string.Empty).ThenBy(a => a.AccountNumber))
                                 {
                                     var beginningDr = priorLedgers.Where(p => p.AccountNo == record.AccountNumber).Sum(p => p.Debit);
                                     var beginningCr = priorLedgers.Where(p => p.AccountNo == record.AccountNumber).Sum(p => p.Credit);
@@ -1276,7 +1277,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                             last.EndingBalance
                         };
                     })
-                    .OrderBy(pb => pb.Account.AccountNumber)
+                    .OrderBy(pb => string.IsNullOrEmpty(pb.Account.Priority)).ThenBy(pb => pb.Account.Priority ?? string.Empty).ThenBy(pb => pb.Account.AccountNumber)
                     .ToList();
 
                 if (!glPeriodBalances.Any())
@@ -1538,7 +1539,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 var chartOfAccounts = await _dbContext.FilprideChartOfAccounts
                     .IgnoreQueryFilters()
                     .Include(coa => coa.Children)
-                    .OrderBy(coa => coa.AccountNumber)
+                    .OrderBy(a => string.IsNullOrEmpty(a.Priority)).ThenBy(a => a.Priority ?? string.Empty).ThenBy(a => a.AccountNumber)
                     .Where(coa => coa.FinancialStatementType == nameof(FinancialStatementType.BalanceSheet))
                     .ToListAsync(cancellationToken);
 
@@ -1632,24 +1633,24 @@ namespace IBSWeb.Areas.Filpride.Controllers
                                  decimal totalAsset = 0;
                                  decimal totalLiabilitiesAndEquity = 0;
 
-                                foreach (var record in chartOfAccounts.Where(a => a.IsMain).OrderBy(a => a.AccountNumber))
+                                foreach (var record in chartOfAccounts.Where(a => a.IsMain).OrderBy(a => string.IsNullOrEmpty(a.Priority)).ThenBy(a => a.Priority ?? string.Empty).ThenBy(a => a.AccountNumber))
                                 {
                                     decimal grandTotal = 0;
 
                                     table.Cell().ColumnSpan(6).Border(0.5f).Padding(3).Text(record.AccountName);
 
-                                    foreach (var levelTwo in record.Children.OrderBy(l => l.AccountNumber))
+                                    foreach (var levelTwo in record.Children.OrderBy(l => string.IsNullOrEmpty(l.Priority)).ThenBy(l => l.Priority ?? string.Empty).ThenBy(l => l.AccountNumber))
                                     {
                                         decimal subTotal = 0;
                                         table.Cell().BorderLeft(0.5f).BorderBottom(0.5f);
                                         table.Cell().ColumnSpan(5).BorderTop(0.5f).BorderRight(0.5f).BorderBottom(0.5f).Padding(3).Text(levelTwo.AccountName);
 
-                                        foreach (var levelThree in levelTwo.Children.OrderBy(l => l.AccountNumber))
+                                        foreach (var levelThree in levelTwo.Children.OrderBy(l => string.IsNullOrEmpty(l.Priority)).ThenBy(l => l.Priority ?? string.Empty).ThenBy(l => l.AccountNumber))
                                         {
                                             table.Cell().ColumnSpan(2).BorderLeft(0.5f).BorderBottom(0.5f);
                                             table.Cell().ColumnSpan(4).BorderTop(0.5f).BorderRight(0.5f).BorderBottom(0.5f).Padding(3).Text(levelThree.AccountName);
 
-                                            foreach (var levelFour in levelThree.Children.OrderBy(l => l.AccountNumber))
+                                            foreach (var levelFour in levelThree.Children.OrderBy(l => string.IsNullOrEmpty(l.Priority)).ThenBy(l => l.Priority ?? string.Empty).ThenBy(l => l.AccountNumber))
                                             {
                                                 if (levelFour.AccountName.Contains("Retained Earnings"))
                                                 {
@@ -1689,7 +1690,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                                                 table.Cell().Border(0.5f).Padding(3).AlignRight().Text(levelFourBalance != 0 ? levelFourBalance < 0 ? $"({Math.Abs(levelFourBalance).ToString(SD.Two_Decimal_Format)})" : levelFourBalance.ToString(SD.Two_Decimal_Format) : null).FontColor(levelFourBalance < 0 ? Colors.Red.Medium : Colors.Black);
                                                 subTotal += levelFourBalance;
 
-                                                foreach (var levelFive in levelFour.Children.OrderBy(l => l.AccountNumber))
+                                                foreach (var levelFive in levelFour.Children.OrderBy(l => string.IsNullOrEmpty(l.Priority)).ThenBy(l => l.Priority ?? string.Empty).ThenBy(l => l.AccountNumber))
                                                 {
                                                     table.Cell().ColumnSpan(4).BorderLeft(0.5f).BorderBottom(0.5f);
                                                     table.Cell().BorderTop(0.5f).BorderRight(0.5f).BorderBottom(0.5f).Padding(3).Text(levelFive.AccountName);
@@ -1806,7 +1807,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     .IgnoreQueryFilters()
                     .Include(coa => coa.Children)
                     .Where(coa => coa.FinancialStatementType == nameof(FinancialStatementType.BalanceSheet))
-                    .OrderBy(coa => coa.AccountNumber)
+                    .OrderBy(a => string.IsNullOrEmpty(a.Priority)).ThenBy(a => a.Priority ?? string.Empty).ThenBy(a => a.AccountNumber)
                     .ToListAsync(cancellationToken);
 
                 var nibitForThePeriod = await _dbContext.FilprideMonthlyNibits
@@ -1909,25 +1910,25 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 decimal totalAsset = 0;
                 decimal totalLiabilitiesAndEquity = 0;
 
-                foreach (var account in chartOfAccounts.Where(a => a.IsMain).OrderBy(a => a.AccountNumber))
+                foreach (var account in chartOfAccounts.Where(a => a.IsMain).OrderBy(a => string.IsNullOrEmpty(a.Priority)).ThenBy(a => a.Priority ?? string.Empty).ThenBy(a => a.AccountNumber))
                 {
                     decimal grandTotal = 0;
 
                     worksheet.Cells[row, 1].Value = account.AccountName;
                     row++;
 
-                    foreach (var levelTwo in account.Children.OrderBy(l => l.AccountNumber))
+                    foreach (var levelTwo in account.Children.OrderBy(l => string.IsNullOrEmpty(l.Priority)).ThenBy(l => l.Priority ?? string.Empty).ThenBy(l => l.AccountNumber))
                     {
                         decimal subTotal = 0;
                         worksheet.Cells[row, 2].Value = levelTwo.AccountName;
                         row++;
 
-                        foreach (var levelThree in levelTwo.Children.OrderBy(l => l.AccountNumber))
+                        foreach (var levelThree in levelTwo.Children.OrderBy(l => string.IsNullOrEmpty(l.Priority)).ThenBy(l => l.Priority ?? string.Empty).ThenBy(l => l.AccountNumber))
                         {
                             worksheet.Cells[row, 3].Value = levelThree.AccountName;
                             row++;
 
-                            foreach (var levelFour in levelThree.Children.OrderBy(l => l.AccountNumber))
+                            foreach (var levelFour in levelThree.Children.OrderBy(l => string.IsNullOrEmpty(l.Priority)).ThenBy(l => l.Priority ?? string.Empty).ThenBy(l => l.AccountNumber))
                             {
                                 if (levelFour.AccountName.Contains("Retained Earnings"))
                                 {
@@ -1976,7 +1977,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                                 subTotal += levelFourBalance;
                                 row++;
 
-                                foreach (var levelFive in levelFour.Children.OrderBy(l => l.AccountNumber))
+                                foreach (var levelFive in levelFour.Children.OrderBy(l => string.IsNullOrEmpty(l.Priority)).ThenBy(l => l.Priority ?? string.Empty).ThenBy(l => l.AccountNumber))
                                 {
                                     worksheet.Cells[row, 5].Value = levelFive.AccountName;
                                     var levelFiveBalance = generalLedgers
