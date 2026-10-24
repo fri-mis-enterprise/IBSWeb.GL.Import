@@ -1,0 +1,5 @@
+Date,Reference,Description,AccountNo,AccountName,Debit,Credit,SubAccountType,SubAccountId,Company,CounterpartyType,CounterpartyId,ModuleType
+2026-10-20,RT261024-002,Final corrected sale,102-1-001,AR-TRADE RECEIVABLE,18000.0000,0.0000,Customer,3,GL Replacement Test A,Customer,3,Sales
+2026-10-20,RT261024-002,Final corrected sale,501-1-1,SALES-BIODIESEL,0.0000,18000.0000,,,GL Replacement Test A,Customer,3,Sales
+2026-10-21,RT261024-005,New partial collection,V00-11-199,CASH-ON-HAND,6000.0000,0.0000,,,GL Replacement Test A,Customer,3,Collection
+2026-10-21,RT261024-005,New partial collection,102-1-001,AR-TRADE RECEIVABLE,0.0000,6000.0000,Customer,3,GL Replacement Test A,Customer,3,Collection

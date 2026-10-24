@@ -1,0 +1,3 @@
+Date,Reference,Description,AccountNo,AccountName,Debit,Credit,SubAccountType,SubAccountId,Company,CounterpartyType,CounterpartyId,ModuleType
+2026-10-22,RT261024-091,Company A is unbalanced,V00-11-199,CASH-ON-HAND,123.0000,0.0000,,,GL Replacement Test A,,,Journal
+2026-10-22,RT261024-091,Company B cannot offset company A,301-1,RETAINED EARNINGS - FRI,0.0000,123.0000,,,GL Replacement Test B,,,Journal

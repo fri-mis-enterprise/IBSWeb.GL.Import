@@ -1,0 +1,3 @@
+Date,Reference,Description,AccountNo,AccountName,Debit,Credit,SubAccountType,SubAccountId,Company,CounterpartyType,CounterpartyId,ModuleType
+2026-10-13,RT261024-003,Corrected to cash purchase without optional fields,618-1,OFFICE SUPPLIES,900.0000,0.0000,,,GL Replacement Test A,,,Purchase
+2026-10-13,RT261024-003,Corrected to cash purchase without optional fields,V00-11-199,CASH-ON-HAND,0.0000,900.0000,,,GL Replacement Test A,,,Purchase

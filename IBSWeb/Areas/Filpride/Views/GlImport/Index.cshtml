@@ -10,7 +10,8 @@
         <h2>@ViewData["Title"]</h2>
     </div>
     <div class="card-body">
-        <p>Upload journal entries to generate financial reports. Each journal must balance by date and reference.</p>
+        <p>Upload journal entries to generate financial reports. Each Company, ModuleType, and Reference transaction must have one date and balance.</p>
+        <p>To replace an imported transaction, upload all its corrected lines with the same Company, ModuleType, and Reference (case-sensitive). Date may change. Previous matching GL lines are permanently deleted; transactions absent from the file are unchanged. Identical files remain blocked.</p>
         <a asp-action="Template" class="btn btn-outline-secondary mb-3">Download Excel template with reference lists</a>
         <p>Fill the GL Upload sheet using the Chart of Accounts, Customers, and Suppliers reference sheets. The lists include current registered IDs, codes, and names. Save only GL Upload as CSV UTF-8, then upload that CSV below.</p>
         <div asp-validation-summary="All" class="text-danger"></div>
@@ -92,7 +93,7 @@
 
         <hr />
         <h3>Import history</h3>
-        <p>Latest 50 batches. After importing all entries, lock and close the months in order to prepare reports that use closed balances.</p>
+        <p>Latest 50 batches. Counts and totals describe each original upload, including transactions later replaced; previous GL values are not retained. After importing all entries, lock and close the months in order to prepare reports that use closed balances.</p>
         <div class="table-responsive">
             <table class="table table-sm table-striped">
                 <thead>

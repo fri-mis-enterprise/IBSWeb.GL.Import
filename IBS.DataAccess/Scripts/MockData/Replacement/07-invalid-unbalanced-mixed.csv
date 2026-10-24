@@ -1,0 +1,5 @@
+Date,Reference,Description,AccountNo,AccountName,Debit,Credit,SubAccountType,SubAccountId,Company,CounterpartyType,CounterpartyId,ModuleType
+2026-10-22,RT261024-002,This replacement must not be saved,102-1-001,AR-TRADE RECEIVABLE,20000.0000,0.0000,Customer,1,GL Replacement Test A,Customer,1,Sales
+2026-10-22,RT261024-002,This replacement must not be saved,501-1-1,SALES-BIODIESEL,0.0000,20000.0000,,,GL Replacement Test A,Customer,1,Sales
+2026-10-22,RT261024-090,Invalid new transaction blocks whole file,618-1,OFFICE SUPPLIES,100.0000,0.0000,,,GL Replacement Test A,,,Journal
+2026-10-22,RT261024-090,Invalid new transaction blocks whole file,V00-11-199,CASH-ON-HAND,0.0000,99.0000,,,GL Replacement Test A,,,Journal

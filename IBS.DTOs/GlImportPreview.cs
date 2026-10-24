@@ -9,6 +9,6 @@ namespace IBS.DTOs
         public bool CanImport => Errors.Count == 0 && Rows.Count > 0;
         public decimal TotalDebit => Rows.Sum(row => row.Debit);
         public decimal TotalCredit => Rows.Sum(row => row.Credit);
-        public int JournalCount => Rows.Select(row => (row.Date, row.Reference)).Distinct().Count();
+        public int JournalCount => Rows.Select(row => (row.Company, row.ModuleType, row.Reference)).Distinct().Count();
     }
 }

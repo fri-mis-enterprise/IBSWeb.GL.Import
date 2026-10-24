@@ -1,0 +1,9 @@
+Date,Reference,Description,AccountNo,AccountName,Debit,Credit,SubAccountType,SubAccountId,Company,CounterpartyType,CounterpartyId,ModuleType
+2026-10-01,RT261024-001,Initial opening capital,V00-11-199,CASH-ON-HAND,50000.0000,0.0000,,,GL Replacement Test A,,,Journal
+2026-10-01,RT261024-001,Initial opening capital,301-1,RETAINED EARNINGS - FRI,0.0000,50000.0000,,,GL Replacement Test A,,,Journal
+2026-10-02,RT261024-002,Initial credit sale,102-1-001,AR-TRADE RECEIVABLE,12000.0000,0.0000,Customer,1,GL Replacement Test A,Customer,1,Sales
+2026-10-02,RT261024-002,Initial credit sale,501-1-1,SALES-BIODIESEL,0.0000,12000.0000,,,GL Replacement Test A,Customer,1,Sales
+2026-10-03,RT261024-003,Initial supplier purchase,618-1,OFFICE SUPPLIES,2500.0000,0.0000,,,GL Replacement Test A,Supplier,1,Purchase
+2026-10-03,RT261024-003,Initial supplier purchase,201-3-1,VOUCHERS PAYABLE -FRI,0.0000,2500.0000,Supplier,1,GL Replacement Test A,Supplier,1,Purchase
+2026-10-04,RT261024-004,Keep this cash expense unchanged,618-1,OFFICE SUPPLIES,1000.4321,0.0000,,,GL Replacement Test A,Supplier,2,Disbursement
+2026-10-04,RT261024-004,Keep this cash expense unchanged,V00-11-199,CASH-ON-HAND,0.0000,1000.4321,,,GL Replacement Test A,Supplier,2,Disbursement

@@ -1,0 +1,3 @@
+Date,Reference,Description,AccountNo,AccountName,Debit,Credit,SubAccountType,SubAccountId,Company,CounterpartyType,CounterpartyId,ModuleType
+2026-10-22,RT261024-002,Invalid mixed dates for one transaction,102-1-001,AR-TRADE RECEIVABLE,19000.0000,0.0000,Customer,3,GL Replacement Test A,Customer,3,Sales
+2026-10-23,RT261024-002,Invalid mixed dates for one transaction,501-1-1,SALES-BIODIESEL,0.0000,19000.0000,,,GL Replacement Test A,Customer,3,Sales

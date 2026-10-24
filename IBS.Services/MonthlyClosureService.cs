@@ -39,6 +39,7 @@ namespace IBS.Services
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
             {
+                await _dbContext.Database.ExecuteSqlRawAsync(GlImportService.PeriodLockSql, cancellationToken);
                 var isMonthAlreadyLocked = await _unitOfWork.IsPeriodPostedAsync(monthDate, cancellationToken);
 
                 if (!isMonthAlreadyLocked)
@@ -688,6 +689,7 @@ namespace IBS.Services
 
             try
             {
+                await _dbContext.Database.ExecuteSqlRawAsync(GlImportService.PeriodLockSql, cancellationToken);
                 await _dbContext.FilprideMonthlyNibits
                     .IgnoreQueryFilters()
                      .Where(n =>

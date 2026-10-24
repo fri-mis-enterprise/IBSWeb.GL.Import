@@ -26,6 +26,7 @@ namespace IBS.Services
         public const int MaximumFileBytes = 10 * 1024 * 1024;
         public const int MaximumRows = 50000;
         public const int MaximumErrors = 100;
+        internal const string PeriodLockSql = "SELECT pg_advisory_xact_lock(742036001)";
         private readonly ApplicationDbContext _dbContext;
         private readonly ISubAccountResolver _subAccountResolver;
 
@@ -136,7 +137,7 @@ namespace IBS.Services
             instructions.Column(2).Style.WrapText = true;
             instructions.Cells[2, 1].LoadFromArrays(new object[][]
             {
-                [1, "Fill GL Upload starting at row 2. Keep the thirteen headers in row 1 unchanged; each date/reference journal must balance."],
+                [1, "Fill GL Upload starting at row 2. Keep the thirteen headers in row 1 unchanged; each Company/ModuleType/Reference transaction must have one date and balance."],
                 [2, "Copy AccountNo and the exact AccountName from Chart of Accounts. Account numbers and customer/supplier codes are text to preserve leading zeros."],
                 [3, "For sub-accounts, copy SubAccountType and SubAccountId from Customers or Suppliers. Use the ID column, not CustomerCode or SupplierCode. Otherwise leave both fields blank."],
                 [4, "Use yyyy-MM-dd dates and amounts with up to four decimal places, without thousands separators. Enter zero on the unused debit or credit side."],
@@ -144,10 +145,12 @@ namespace IBS.Services
                 [6, "Reference sheets show registered active customers/suppliers and visible posting accounts at download time. Download again after master data changes; preview and confirmation validate current records."],
                 [7, "Company is required on every GL line (up to 50 characters). Enter the company name directly; no Company master record is needed. Use consistent names for future per-company reports."],
                 [8, "For counterparties, copy the type and database ID from Customers or Suppliers into CounterpartyType and CounterpartyId. The name is resolved automatically. Leave both blank when not applicable. Counterparty is separate from sub-account; for sales use the customer, and for purchases use the supplier."],
-                [9, "ModuleType is free text, required on every GL line (up to 50 characters). Use consistent spelling and capitalization for the same module across all uploads, for example Sales, Purchase, Disbursement, DebitMemo, CreditMemo, Collection, or Journal. Other names are allowed; surrounding spaces are trimmed."]
+                [9, "ModuleType is free text, required on every GL line (up to 50 characters). Use consistent spelling and capitalization for the same module across all uploads, for example Sales, Purchase, Disbursement, DebitMemo, CreditMemo, Collection, or Journal. Other names are allowed; surrounding spaces are trimmed."],
+                [10, "To replace an imported transaction, upload all its corrected lines using the same Company, ModuleType, and Reference (case-sensitive). Date may change. Previous matching GL lines are permanently deleted; transactions absent from the file are unchanged. Identical files remain blocked."]
             });
-            instructions.Cells[2, 1, 10, 2].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
-            instructions.Rows[2, 10].Height = 45;
+            instructions.Cells[2, 1, 11, 2].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+            instructions.Rows[2, 11].Height = 45;
+            instructions.Row(11).Height = 75;
             package.Workbook.View.ActiveTab = 0;
             return await package.GetAsByteArrayAsync(cancellationToken);
         }
@@ -173,28 +176,41 @@ namespace IBS.Services
         public async Task<GlImportPreview> PreviewAsync(byte[] contents, string fileName,
             CancellationToken cancellationToken = default)
         {
-            GlImportPreview preview = Parse(contents, fileName, cancellationToken);
+            var result = await PrepareAsync(contents, fileName, cancellationToken);
+            return result.Preview;
+        }
+
+        private async Task<(GlImportPreview Preview, List<FilprideGeneralLedgerBook> ExistingRows)> PrepareAsync(
+            byte[] contents, string fileName, CancellationToken cancellationToken)
+        {
+            var preview = Parse(contents, fileName, cancellationToken);
             if (!preview.CanImport)
             {
-                return preview;
+                return (preview, []);
             }
 
-            foreach (var journal in preview.Rows.GroupBy(row => (row.Date, row.Reference)))
+            foreach (var journal in preview.Rows.GroupBy(row => (row.Company, row.ModuleType, row.Reference)))
             {
-                decimal debit = journal.Sum(row => row.Debit);
-                decimal credit = journal.Sum(row => row.Credit);
+                if (journal.Select(row => row.Date).Distinct().Skip(1).Any())
+                {
+                    AddError(preview, $"Transaction {journal.Key.Company}/{journal.Key.ModuleType}/{journal.Key.Reference} must have one date.");
+                }
+                var debit = journal.Sum(row => row.Debit);
+                var credit = journal.Sum(row => row.Credit);
                 if (debit != credit)
                 {
-                    AddError(preview, $"Journal {journal.Key.Reference} on {journal.Key.Date:yyyy-MM-dd} is unbalanced: debit {debit:N4}, credit {credit:N4}.");
+                    AddError(preview, $"Transaction {journal.Key.Company}/{journal.Key.ModuleType}/{journal.Key.Reference} is unbalanced: debit {debit:N4}, credit {credit:N4}.");
                 }
             }
 
             await ValidateAccountsAsync(preview, cancellationToken);
             await ValidateSubAccountsAsync(preview, cancellationToken);
             await ValidateCounterpartiesAsync(preview, cancellationToken);
-            await ValidatePeriodsAsync(preview, cancellationToken);
-            await ValidateDuplicatesAsync(preview, cancellationToken);
-            return preview;
+            var existingRows = await FindReplacementRowsAsync(preview, cancellationToken);
+            var firstDate = preview.Rows.Select(row => row.Date)
+                .Concat(existingRows.Select(row => row.Date)).Min();
+            await ValidatePeriodsAsync(preview, firstDate, cancellationToken);
+            return (preview, existingRows);
         }
 
         public async Task<Guid> ImportAsync(byte[] contents, string fileName, string user,
@@ -206,8 +222,8 @@ namespace IBS.Services
             }
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-            await _dbContext.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(742036001)", cancellationToken);
-            GlImportPreview preview = await PreviewAsync(contents, fileName, cancellationToken);
+            await _dbContext.Database.ExecuteSqlRawAsync(PeriodLockSql, cancellationToken);
+            var (preview, existingRows) = await PrepareAsync(contents, fileName, cancellationToken);
             if (!preview.CanImport)
             {
                 throw new InvalidOperationException(preview.Errors.FirstOrDefault() ?? "The file contains no GL lines.");
@@ -227,6 +243,7 @@ namespace IBS.Services
                 TotalDebit = preview.TotalDebit,
                 TotalCredit = preview.TotalCredit
             };
+            _dbContext.FilprideGeneralLedgerBooks.RemoveRange(existingRows);
             _dbContext.FilprideGlImportBatches.Add(batch);
             _dbContext.FilprideGeneralLedgerBooks.AddRange(preview.Rows.Select(row => new FilprideGeneralLedgerBook
             {
@@ -252,7 +269,7 @@ namespace IBS.Services
                 SubAccountName = row.SubAccountName
             }));
             _dbContext.FilprideAuditTrails.Add(new FilprideAuditTrail(user,
-                $"Imported GL batch {batch.Id}: {batch.RowCount} lines, {batch.JournalCount} journals.", "GL Import"));
+                $"Imported GL batch {batch.Id}: {batch.RowCount} lines, {batch.JournalCount} journals. Deleted {existingRows.Count} previous imported GL lines.", "GL Import"));
             await _dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return batch.Id;
@@ -364,11 +381,9 @@ namespace IBS.Services
             }
         }
 
-        private async Task ValidatePeriodsAsync(GlImportPreview preview, CancellationToken cancellationToken)
+        private async Task ValidatePeriodsAsync(GlImportPreview preview, DateOnly firstDate, CancellationToken cancellationToken)
         {
-            DateOnly firstDate = preview.Rows.Min(row => row.Date);
-
-            bool hasAffectedClosedBalances = await _dbContext.FilprideGlPeriodBalances.IgnoreQueryFilters()
+            var hasAffectedClosedBalances = await _dbContext.FilprideGlPeriodBalances.IgnoreQueryFilters()
                 .AnyAsync(period => period.IsValid && period.IsClosed && period.PeriodEndDate >= firstDate, cancellationToken);
             if (hasAffectedClosedBalances)
             {
@@ -376,31 +391,38 @@ namespace IBS.Services
             }
         }
 
-        private async Task ValidateDuplicatesAsync(GlImportPreview preview, CancellationToken cancellationToken)
+        private async Task<List<FilprideGeneralLedgerBook>> FindReplacementRowsAsync(GlImportPreview preview,
+            CancellationToken cancellationToken)
         {
             if (await _dbContext.FilprideGlImportBatches.AnyAsync(batch => batch.FileHash == preview.FileHash, cancellationToken))
             {
                 AddError(preview, "This file has already been imported.");
-                return;
+                return [];
             }
 
-            DateOnly firstDate = preview.Rows.Min(row => row.Date);
-            DateOnly lastDate = preview.Rows.Max(row => row.Date);
-            HashSet<(DateOnly Date, string Reference)> journalKeys = preview.Rows
-                .Select(row => (row.Date, row.Reference)).ToHashSet();
-            foreach (string[] references in preview.Rows.Select(row => row.Reference).Distinct().Chunk(500))
+            var journalKeys = preview.Rows.Select(row => (row.Company, row.ModuleType, row.Reference)).ToHashSet();
+            var existingRows = new List<FilprideGeneralLedgerBook>();
+            foreach (var references in preview.Rows.Select(row => row.Reference).Distinct().Chunk(500))
             {
-                var existingJournals = await _dbContext.FilprideGeneralLedgerBooks.AsNoTracking()
-                    .Where(gl => gl.Date >= firstDate && gl.Date <= lastDate && references.Contains(gl.Reference))
-                    .Select(gl => new { gl.Date, gl.Reference }).Distinct().ToListAsync(cancellationToken);
-                foreach (var journal in existingJournals)
+                var candidates = await _dbContext.FilprideGeneralLedgerBooks.AsNoTracking()
+                    .Where(gl => references.Contains(gl.Reference.Trim()))
+                    .ToListAsync(cancellationToken);
+                existingRows.AddRange(candidates.Where(gl => gl.Company != null &&
+                    journalKeys.Contains((gl.Company.Trim(), gl.ModuleType.Trim(), gl.Reference.Trim()))));
+            }
+            foreach (var journal in existingRows.GroupBy(gl => (Company: gl.Company!.Trim(),
+                         ModuleType: gl.ModuleType.Trim(), Reference: gl.Reference.Trim())))
+            {
+                if (journal.Any(gl => !gl.ImportBatchId.HasValue))
                 {
-                    if (journalKeys.Contains((journal.Date, journal.Reference)))
-                    {
-                        AddError(preview, $"Journal {journal.Reference} on {journal.Date:yyyy-MM-dd} already exists in the GL.");
-                    }
+                    AddError(preview, $"Transaction {journal.Key.Company}/{journal.Key.ModuleType}/{journal.Key.Reference} contains non-imported GL entries and cannot be replaced.");
+                }
+                else if (journal.Select(gl => (gl.Date, gl.ImportBatchId)).Distinct().Skip(1).Any())
+                {
+                    AddError(preview, $"Transaction {journal.Key.Company}/{journal.Key.ModuleType}/{journal.Key.Reference} spans multiple existing dates or import batches and cannot be replaced.");
                 }
             }
+            return existingRows;
         }
 
         public static GlImportPreview Parse(byte[] contents, string fileName, CancellationToken cancellationToken = default)

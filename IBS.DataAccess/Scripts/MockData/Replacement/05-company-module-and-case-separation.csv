@@ -1,0 +1,9 @@
+Date,Reference,Description,AccountNo,AccountName,Debit,Credit,SubAccountType,SubAccountId,Company,CounterpartyType,CounterpartyId,ModuleType
+2026-10-21,RT261024-002,Same reference in another company,V00-11-199,CASH-ON-HAND,700.0000,0.0000,,,GL Replacement Test B,,,Sales
+2026-10-21,RT261024-002,Same reference in another company,301-1,RETAINED EARNINGS - FRI,0.0000,700.0000,,,GL Replacement Test B,,,Sales
+2026-10-21,RT261024-002,Same reference in another module,V00-11-199,CASH-ON-HAND,800.0000,0.0000,,,GL Replacement Test A,,,Journal
+2026-10-21,RT261024-002,Same reference in another module,301-1,RETAINED EARNINGS - FRI,0.0000,800.0000,,,GL Replacement Test A,,,Journal
+2026-10-21,RT261024-002,Lowercase module is a separate transaction,V00-11-199,CASH-ON-HAND,900.0000,0.0000,,,GL Replacement Test A,,,sales
+2026-10-21,RT261024-002,Lowercase module is a separate transaction,301-1,RETAINED EARNINGS - FRI,0.0000,900.0000,,,GL Replacement Test A,,,sales
+2026-10-21,rt261024-002,Lowercase reference is a separate transaction,V00-11-199,CASH-ON-HAND,1000.0000,0.0000,,,GL Replacement Test A,,,Sales
+2026-10-21,rt261024-002,Lowercase reference is a separate transaction,301-1,RETAINED EARNINGS - FRI,0.0000,1000.0000,,,GL Replacement Test A,,,Sales

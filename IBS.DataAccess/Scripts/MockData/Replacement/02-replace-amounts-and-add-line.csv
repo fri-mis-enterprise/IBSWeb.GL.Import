@@ -1,0 +1,6 @@
+Date,Reference,Description,AccountNo,AccountName,Debit,Credit,SubAccountType,SubAccountId,Company,CounterpartyType,CounterpartyId,ModuleType
+2026-10-12,RT261024-002,Corrected sale date amount and customer,102-1-001,AR-TRADE RECEIVABLE,15000.0000,0.0000,Customer,2,GL Replacement Test A,Customer,2,Sales
+2026-10-12,RT261024-002,Corrected sale date amount and customer,501-1-1,SALES-BIODIESEL,0.0000,15000.0000,,,GL Replacement Test A,Customer,2,Sales
+2026-10-13,RT261024-003,Corrected purchase with separate freight,618-1,OFFICE SUPPLIES,2500.0000,0.0000,,,GL Replacement Test A,Supplier,2,Purchase
+2026-10-13,RT261024-003,Corrected purchase with separate freight,602-1-003,FREIGHT OUT - BIODIESEL,500.0000,0.0000,,,GL Replacement Test A,Supplier,2,Purchase
+2026-10-13,RT261024-003,Corrected purchase with separate freight,201-3-1,VOUCHERS PAYABLE -FRI,0.0000,3000.0000,Supplier,2,GL Replacement Test A,Supplier,2,Purchase
