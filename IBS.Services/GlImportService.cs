@@ -147,7 +147,7 @@ namespace IBS.Services
                 ["Reference (required)", "Enter the transaction or document number, for example JV-0001 (up to 20 characters). Repeat it on every row belonging to that transaction."],
                 ["Description (required)", "Enter a short explanation, for example Office supplies purchased."],
                 ["AccountNo / AccountName (required)", "Copy both values from the same row of Chart of Accounts. Keep the account name's spelling and capital letters exactly as listed. Keep any zeros at the start of the account number; do not change the AccountNo column's Text format."],
-                ["Debit / Credit (required)", "Enter a positive amount on one side and 0 on the other. Use numbers such as 1000.00, without commas or currency symbols. Up to four decimal places are allowed. Do not leave the unused side blank."],
+                ["Debit / Credit (required)", "Enter a positive or negative amount on one side and 0 on the other. Use numbers such as 1000.00 or -1000.00, without commas or currency symbols. Up to four decimal places are allowed. Do not leave the unused side blank."],
                 ["Company (required)", "Type the company name on every row (up to 50 characters). Use the same spelling and capital letters in every upload. You do not need to register the company first."],
                 ["ModuleType (required)", "Enter the transaction category on every row (up to 50 characters), for example Sales, Purchase, Disbursement, DebitMemo, CreditMemo, Collection, or Journal. Other names are allowed. Use the same spelling and capital letters for the same category in every upload."],
                 ["SubAccountType / SubAccountId (optional)", "Use these for the customer or supplier whose individual ledger this entry belongs to. Find the name on Customers or Suppliers, then copy that row's SubAccountType and SubAccountId. Fill both fields or leave both blank. The system fills in the name."],
@@ -541,12 +541,12 @@ namespace IBS.Services
             bool hasCredit = TryParseAmount(fields[6], out decimal credit);
             if (!hasDebit || !hasCredit)
             {
-                AddError(preview, $"Row {rowNumber}: Debit and Credit must be nonnegative numbers with at most four decimal places, no thousands separators, and at most 14 integer digits.");
+                AddError(preview, $"Row {rowNumber}: Debit and Credit must be numbers with at most four decimal places, no thousands separators, and at most 14 integer digits. Positive and negative amounts are allowed.");
                 valid = false;
             }
-            else if ((debit > 0) == (credit > 0))
+            else if ((debit != 0) == (credit != 0))
             {
-                AddError(preview, $"Row {rowNumber}: enter a positive amount on exactly one side and zero on the other.");
+                AddError(preview, $"Row {rowNumber}: enter a nonzero amount (positive or negative) on exactly one side and zero on the other.");
                 valid = false;
             }
             var subAccountType = (SubAccountType?)null;
@@ -637,8 +637,8 @@ namespace IBS.Services
 
         private static bool TryParseAmount(string text, out decimal amount)
         {
-            return decimal.TryParse(text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out amount)
-                   && (amount >= 0) && (amount <= 99999999999999.9999m) && (decimal.Round(amount, 4) == amount);
+            return decimal.TryParse(text, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out amount)
+                   && (amount >= -99999999999999.9999m) && (amount <= 99999999999999.9999m) && (decimal.Round(amount, 4) == amount);
         }
 
         private static void AddError(GlImportPreview preview, string error)
