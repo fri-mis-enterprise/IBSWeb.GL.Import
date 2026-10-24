@@ -131,26 +131,37 @@ namespace IBS.Services
                 reference.Cells[reference.Dimension.Address].AutoFilter = true;
             }
 
-            var instructions = CreateTemplateSheet(package.Workbook, "Instructions", ["Step", "Instructions"]);
-            instructions.Column(1).Width = 8;
+            var instructions = CreateTemplateSheet(package.Workbook, "Instructions", ["Step or column", "What to do"]);
+            instructions.Column(1).Width = 32;
+            instructions.Column(1).Style.WrapText = true;
             instructions.Column(2).Width = 110;
             instructions.Column(2).Style.WrapText = true;
             instructions.Cells[2, 1].LoadFromArrays(new object[][]
             {
-                [1, "Fill GL Upload starting at row 2. Keep the thirteen headers in row 1 unchanged; each Company/ModuleType/Reference transaction must have one date and balance."],
-                [2, "Copy AccountNo and the exact AccountName from Chart of Accounts. Account numbers and customer/supplier codes are text to preserve leading zeros."],
-                [3, "For sub-accounts, copy SubAccountType and SubAccountId from Customers or Suppliers. Use the ID column, not CustomerCode or SupplierCode. Otherwise leave both fields blank."],
-                [4, "Use yyyy-MM-dd dates and amounts with up to four decimal places, without thousands separators. Enter zero on the unused debit or credit side."],
-                [5, "Select GL Upload, then Save As CSV UTF-8 (current sheet only). Upload that CSV in GL Import from the main menu, review the preview, and confirm. Keep this workbook separately for reference."],
-                [6, "Reference sheets show registered active customers/suppliers and visible posting accounts at download time. Download again after master data changes; preview and confirmation validate current records."],
-                [7, "Company is required on every GL line (up to 50 characters). Enter the company name directly; no Company master record is needed. Use consistent names for future per-company reports."],
-                [8, "For counterparties, copy the type and database ID from Customers or Suppliers into CounterpartyType and CounterpartyId. The name is resolved automatically. Leave both blank when not applicable. Counterparty is separate from sub-account; for sales use the customer, and for purchases use the supplier."],
-                [9, "ModuleType is free text, required on every GL line (up to 50 characters). Use consistent spelling and capitalization for the same module across all uploads, for example Sales, Purchase, Disbursement, DebitMemo, CreditMemo, Collection, or Journal. Other names are allowed; surrounding spaces are trimmed."],
-                [10, "To replace an imported transaction, upload all its corrected lines using the same Company, ModuleType, and Reference (case-sensitive). Date may change. Previous matching GL lines are permanently deleted; transactions absent from the file are unchanged. Identical files remain blocked."]
+                ["1. Fill GL Upload", "Start at row 2 on GL Upload. Keep all 13 column headings in row 1 exactly as they are and in the same order. Enter one debit or credit entry per row. Do not add total or subtotal rows. The column guide below explains what to enter."],
+                ["2. Check each transaction", "Rows with the same Company, ModuleType, and Reference belong to one transaction. Use the same date on all of them. Their total debit must equal their total credit. For example, a debit of 1000.00 and a credit of 1000.00 on two rows balance one transaction. Each transaction must balance on its own."],
+                ["3. Save a CSV copy", "Save this Excel workbook first so you can edit it later. Select GL Upload, then choose File > Save As or Save a Copy. Choose CSV UTF-8 (Comma delimited) (*.csv). If Excel asks, save only the active sheet and keep the CSV format. Keep your .xlsx workbook too."],
+                ["4. Preview and confirm", "Open GL Import from the main menu. Choose your saved .csv file and click Check file and preview. This checks the file without saving entries. Review the dates, accounts, customer/supplier names, and amounts, then click Confirm and save GL entries within 15 minutes."],
+                ["If errors appear", "No entries are saved when a file fails the checks. Use the row numbers in the messages to find and fix entries in your Excel workbook. Save GL Upload as CSV UTF-8 again, then upload the new CSV. If the preview expires, upload your CSV again."],
+                ["Date (required)", "Use year-month-day, for example 2026-01-15. All rows belonging to one transaction must use the same date."],
+                ["Reference (required)", "Enter the transaction or document number, for example JV-0001 (up to 20 characters). Repeat it on every row belonging to that transaction."],
+                ["Description (required)", "Enter a short explanation, for example Office supplies purchased."],
+                ["AccountNo / AccountName (required)", "Copy both values from the same row of Chart of Accounts. Keep the account name's spelling and capital letters exactly as listed. Keep any zeros at the start of the account number; do not change the AccountNo column's Text format."],
+                ["Debit / Credit (required)", "Enter a positive amount on one side and 0 on the other. Use numbers such as 1000.00, without commas or currency symbols. Up to four decimal places are allowed. Do not leave the unused side blank."],
+                ["Company (required)", "Type the company name on every row (up to 50 characters). Use the same spelling and capital letters in every upload. You do not need to register the company first."],
+                ["ModuleType (required)", "Enter the transaction category on every row (up to 50 characters), for example Sales, Purchase, Disbursement, DebitMemo, CreditMemo, Collection, or Journal. Other names are allowed. Use the same spelling and capital letters for the same category in every upload."],
+                ["SubAccountType / SubAccountId (optional)", "Use these for the customer or supplier whose individual ledger this entry belongs to. Find the name on Customers or Suppliers, then copy that row's SubAccountType and SubAccountId. Fill both fields or leave both blank. The system fills in the name."],
+                ["CounterpartyType / CounterpartyId (optional)", "Use these for the customer or supplier involved in the transaction: customer for sales, supplier for purchases. On Customers or Suppliers, copy SubAccountType into CounterpartyType and SubAccountId into CounterpartyId. Fill both fields or leave both blank. The system fills in the name."],
+                ["Which ID do I copy?", "Use the number under SubAccountId on Customers or Suppliers, not CustomerCode or SupplierCode. Copy the type from the same row: Customer or Supplier. The same number can belong to a different customer and supplier, so the type matters."],
+                ["Are the optional pairs the same?", "They are separate and may refer to different records. Filling in one does not fill in the other. For a supplier purchase, the expense row can have its sub-account pair blank and its counterparty set to the supplier. The payable row can use that supplier in both pairs."],
+                ["Uploading a correction", "Include every corrected row for the transaction, even rows that have not changed. Use the original Company, ModuleType, and Reference with the same spelling and capital letters. Confirming replaces ALL old entries for that transaction with the rows in your file. The date may change."],
+                ["Before confirming a correction", "Old entries are permanently deleted and cannot be restored from import history. Changing Company, ModuleType, or Reference creates a separate transaction instead. Transactions not included in the file stay unchanged. The same unchanged file cannot be imported twice."],
+                ["File limits", "Upload a .csv file, not this .xlsx workbook. Each CSV may contain up to 50,000 entry rows and be up to 10 MB. If you need more than one file, keep all rows belonging to each transaction together in the same file."],
+                ["Keeping reference lists current", "Chart of Accounts, Customers, and Suppliers show the available accounts and active customers/suppliers when this template was downloaded. Download a fresh template if those lists have changed. The system checks the current records again before saving."],
+                ["After importing", "Check the imported entries against your source records. Once all entries are imported and checked, coordinate with MIS for month-end closing. MIS is responsible for locking and closing the months from earliest to latest. Reports that use closed balances need this step."]
             });
-            instructions.Cells[2, 1, 11, 2].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
-            instructions.Rows[2, 11].Height = 45;
-            instructions.Row(11).Height = 75;
+            instructions.Cells[instructions.Dimension.Address].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+            instructions.Rows[2, instructions.Dimension.End.Row].Height = 75;
             package.Workbook.View.ActiveTab = 0;
             return await package.GetAsByteArrayAsync(cancellationToken);
         }
@@ -193,13 +204,13 @@ namespace IBS.Services
             {
                 if (journal.Select(row => row.Date).Distinct().Skip(1).Any())
                 {
-                    AddError(preview, $"Transaction {journal.Key.Company}/{journal.Key.ModuleType}/{journal.Key.Reference} must have one date.");
+                    AddError(preview, $"Transaction {journal.Key.Company}/{journal.Key.ModuleType}/{journal.Key.Reference}: use the same Date on every row belonging to this transaction.");
                 }
                 var debit = journal.Sum(row => row.Debit);
                 var credit = journal.Sum(row => row.Credit);
                 if (debit != credit)
                 {
-                    AddError(preview, $"Transaction {journal.Key.Company}/{journal.Key.ModuleType}/{journal.Key.Reference} is unbalanced: debit {debit:N4}, credit {credit:N4}.");
+                    AddError(preview, $"Transaction {journal.Key.Company}/{journal.Key.ModuleType}/{journal.Key.Reference}: total debit ({debit:N4}) must equal total credit ({credit:N4}). Check all rows belonging to this transaction.");
                 }
             }
 
@@ -289,11 +300,11 @@ namespace IBS.Services
             {
                 if (!accounts.TryGetValue(row.AccountNo, out FilprideChartOfAccount? account))
                 {
-                    AddError(preview, $"Row {row.RowNumber}: account {row.AccountNo} does not exist or is hidden.");
+                    AddError(preview, $"Row {row.RowNumber}: account {row.AccountNo} is not available. Download a fresh template and copy AccountNo and AccountName from Chart of Accounts.");
                 }
                 else if (account.HasChildren)
                 {
-                    AddError(preview, $"Row {row.RowNumber}: account {row.AccountNo} has children. Select a posting account.");
+                    AddError(preview, $"Row {row.RowNumber}: account {row.AccountNo} is a summary account and cannot be used for entries. Copy an account from Chart of Accounts in the template.");
                 }
                 else if (!string.Equals(row.AccountName, account.AccountName, StringComparison.Ordinal))
                 {
@@ -434,7 +445,7 @@ namespace IBS.Services
             };
             if (contents.Length == 0 || contents.Length > MaximumFileBytes)
             {
-                AddError(preview, "Select a nonempty CSV file no larger than 10 MB.");
+                AddError(preview, "Choose a CSV file that contains entries and is no larger than 10 MB. Save the GL Upload sheet as CSV UTF-8 in Excel.");
                 return preview;
             }
             if (preview.FileName.Length is 0 or > 255 ||
@@ -470,7 +481,7 @@ namespace IBS.Services
                     !baseHeaders.SequenceEqual((CsvHeader + ",Company,CounterpartyType,CounterpartyId").Split(',')) &&
                     !baseHeaders.SequenceEqual(CounterpartyCsvHeader.Split(',')))
                 {
-                    AddError(preview, $"The header must be {CsvHeader},Company or {CompanyCsvHeader}. Company is required on every GL line. Either format may append CounterpartyType and CounterpartyId; supply both values or leave both blank. Names are resolved automatically. Append ModuleType as the last column for a free-text module name; when present, it is required on every GL line (up to 50 characters).");
+                    AddError(preview, "The column headings or their order do not match the upload format. Download a fresh Excel template, copy your entries below row 1 without changing or removing its 13 headings, then save only GL Upload as CSV UTF-8.");
                     return preview;
                 }
 
@@ -486,7 +497,7 @@ namespace IBS.Services
                     }
                     if (csv.Parser.Count != headers.Length)
                     {
-                        AddError(preview, $"Row {rowNumber}: expected {headers.Length} fields.");
+                        AddError(preview, $"Row {rowNumber}: this row must have {headers.Length} columns, including blank optional cells. Check the row in your workbook, then save GL Upload as CSV UTF-8 again.");
                         continue;
                     }
                     ReadRow(csv, rowNumber, preview);
@@ -494,11 +505,11 @@ namespace IBS.Services
             }
             catch (CsvHelperException)
             {
-                AddError(preview, "The CSV is malformed. Check its quotes and separators.");
+                AddError(preview, "The file could not be read as CSV. Open your Excel workbook and save only the GL Upload sheet as CSV UTF-8 (Comma delimited), then upload the new CSV.");
             }
             catch (DecoderFallbackException)
             {
-                AddError(preview, "Save the CSV using UTF-8 encoding.");
+                AddError(preview, "In Excel, save GL Upload using the file type CSV UTF-8 (Comma delimited), then upload the new CSV.");
             }
             if (preview.Rows.Count == 0)
             {
@@ -514,7 +525,7 @@ namespace IBS.Services
                 DateTimeStyles.None, out DateOnly date);
             if (!valid)
             {
-                AddError(preview, $"Row {rowNumber}: Date must use yyyy-MM-dd.");
+                AddError(preview, $"Row {rowNumber}: enter Date as year-month-day, for example 2026-01-15.");
             }
             valid = ValidateText(fields[1], "Reference", 20, rowNumber, preview) && valid;
             valid = ValidateText(fields[2], "Description", int.MaxValue, rowNumber, preview) && valid;
@@ -551,7 +562,7 @@ namespace IBS.Services
                 if (!subAccountType.HasValue ||
                     !int.TryParse(fields[8], NumberStyles.None, CultureInfo.InvariantCulture, out var id) || id <= 0)
                 {
-                    AddError(preview, $"Row {rowNumber}: supply both SubAccountType (Supplier or Customer) and a positive integer SubAccountId, or leave both blank.");
+                    AddError(preview, $"Row {rowNumber}: copy SubAccountType (Supplier or Customer) and SubAccountId from the same row of Suppliers or Customers in the template. Use the ID number, not the code. If no sub-account applies, leave both cells blank.");
                     valid = false;
                 }
                 else
@@ -573,7 +584,7 @@ namespace IBS.Services
                 if (!counterpartyType.HasValue ||
                     !int.TryParse(fields[counterpartyIndex + 1], NumberStyles.None, CultureInfo.InvariantCulture, out var id) || id <= 0)
                 {
-                    AddError(preview, $"Row {rowNumber}: supply both CounterpartyType (Customer or Supplier) and a positive integer CounterpartyId, or leave both blank.");
+                    AddError(preview, $"Row {rowNumber}: copy SubAccountType and SubAccountId from Customers or Suppliers into CounterpartyType (Customer or Supplier) and CounterpartyId. Use the ID number, not the code. If no counterparty applies, leave both cells blank.");
                     valid = false;
                 }
                 else

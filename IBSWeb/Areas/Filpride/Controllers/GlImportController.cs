@@ -45,7 +45,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
             var model = new GlImportViewModel { History = await _service.GetHistoryAsync(cancellationToken) };
             if (file == null || file.Length == 0 || file.Length > GlImportService.MaximumFileBytes)
             {
-                ModelState.AddModelError(string.Empty, "Select a nonempty CSV file no larger than 10 MB.");
+                ModelState.AddModelError(string.Empty, "Choose a CSV file that contains entries and is no larger than 10 MB. Save the GL Upload sheet as CSV UTF-8 in Excel.");
                 return View("Index", model);
             }
 
@@ -73,7 +73,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
             if (!Guid.TryParseExact(previewToken, "N", out _) ||
                 !_cache.TryGetValue(GetCacheKey(previewToken!), out (byte[] Contents, string FileName) pending))
             {
-                TempData["error"] = "The preview expired or is unavailable. Upload the file again.";
+                TempData["error"] = "Your preview is no longer available. Choose your saved CSV file and click Check file and preview again before confirming.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -81,7 +81,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
             {
                 Guid batchId = await _service.ImportAsync(pending.Contents, pending.FileName, User.Identity!.Name!, cancellationToken);
                 _cache.Remove(GetCacheKey(previewToken!));
-                TempData["success"] = $"GL batch {batchId} imported successfully.";
+                TempData["success"] = $"Your GL entries have been saved. Import reference: {batchId}.";
             }
             catch (InvalidOperationException ex)
             {
@@ -99,7 +99,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogError(ex, "Failed to import GL for {UserId}", User.FindFirstValue(ClaimTypes.NameIdentifier));
-                TempData["error"] = "The GL import failed. Upload the file again or check the server log.";
+                TempData["error"] = "Your GL entries could not be saved. Try uploading your CSV again. If this continues, contact your system administrator and provide the file name and time of the attempt.";
             }
             return RedirectToAction(nameof(Index));
         }
