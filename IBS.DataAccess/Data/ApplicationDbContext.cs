@@ -701,7 +701,7 @@ namespace IBS.DataAccess.Data
                     .HasForeignKey(gl => gl.AccountId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                gl.HasIndex(gl => gl.Reference);
+                gl.HasIndex(gl => gl.Reference).HasMethod("hash");
 
                 gl.HasOne(gl => gl.ImportBatch)
                     .WithMany()

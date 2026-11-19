@@ -144,12 +144,12 @@ namespace IBS.Services
                 ["4. Preview and confirm", "Open GL Import from the main menu. Choose your saved .csv file and click Check file and preview. This checks the file without saving entries. Review the dates, accounts, customer/supplier names, and amounts, then click Confirm and save GL entries within 15 minutes."],
                 ["If errors appear", "No entries are saved when a file fails the checks. Use the row numbers in the messages to find and fix entries in your Excel workbook. Save GL Upload as CSV UTF-8 again, then upload the new CSV. If the preview expires, upload your CSV again."],
                 ["Date (required)", "Use year-month-day, for example 2026-01-15. All rows belonging to one transaction must use the same date."],
-                ["Reference (required)", "Enter the transaction or document number, for example JV-0001 (up to 20 characters). Repeat it on every row belonging to that transaction."],
+                ["Reference (required)", "Enter the transaction or document number, for example JV-0001. Repeat it on every row belonging to that transaction."],
                 ["Description (required)", "Enter a short explanation, for example Office supplies purchased."],
                 ["AccountNo / AccountName (required)", "Copy both values from the same row of Chart of Accounts. Keep the account name's spelling and capital letters exactly as listed. Keep any zeros at the start of the account number; do not change the AccountNo column's Text format."],
                 ["Debit / Credit (required)", "Enter a positive or negative amount on one side and 0 on the other. Use numbers such as 1000.00 or -1000.00, without commas or currency symbols. Up to four decimal places are allowed. Do not leave the unused side blank."],
-                ["Company (required)", "Type the company name on every row (up to 50 characters). Use the same spelling and capital letters in every upload. You do not need to register the company first."],
-                ["ModuleType (required)", "Enter the transaction category on every row (up to 50 characters), for example Sales, Purchase, Disbursement, DebitMemo, CreditMemo, Collection, or Journal. Other names are allowed. Use the same spelling and capital letters for the same category in every upload."],
+                ["Company (required)", "Type the company name on every row. Use the same spelling and capital letters in every upload. You do not need to register the company first."],
+                ["ModuleType (required)", "Enter the transaction category on every row, for example Sales, Purchase, Disbursement, DebitMemo, CreditMemo, Collection, or Journal. Other names are allowed. Use the same spelling and capital letters for the same category in every upload."],
                 ["SubAccountType / SubAccountId (optional)", "Use these for the customer or supplier whose individual ledger this entry belongs to. Find the name on Customers or Suppliers, then copy that row's SubAccountType and SubAccountId. Fill both fields or leave both blank. The system fills in the name."],
                 ["CounterpartyType / CounterpartyId (optional)", "Use these for the customer or supplier involved in the transaction: customer for sales, supplier for purchases. On Customers or Suppliers, copy SubAccountType into CounterpartyType and SubAccountId into CounterpartyId. Fill both fields or leave both blank. The system fills in the name."],
                 ["Which ID do I copy?", "Use the number under SubAccountId on Customers or Suppliers, not CustomerCode or SupplierCode. Copy the type from the same row: Customer or Supplier. The same number can belong to a different customer and supplier, so the type matters."],
@@ -351,7 +351,7 @@ namespace IBS.Services
                     {
                         AddError(preview, $"Row {row.RowNumber}: {group.Key.Type} ID {group.Key.Id} does not exist or is inactive.");
                     }
-                    else if (ValidateText(subAccount.Name, "SubAccountName", 200, row.RowNumber, preview))
+                    else if (ValidateText(subAccount.Name, "SubAccountName", row.RowNumber, preview))
                     {
                         row.SubAccountName = subAccount.Name;
                     }
@@ -385,7 +385,7 @@ namespace IBS.Services
                 {
                     AddError(preview, $"Row {row.RowNumber}: counterparty {row.CounterpartyType} ID {row.CounterpartyId} does not exist or is inactive.");
                 }
-                else if (ValidateText(name, "CounterpartyName", 200, row.RowNumber, preview))
+                else if (ValidateText(name, "CounterpartyName", row.RowNumber, preview))
                 {
                     row.CounterpartyName = name;
                 }
@@ -527,16 +527,16 @@ namespace IBS.Services
             {
                 AddError(preview, $"Row {rowNumber}: enter Date as year-month-day, for example 2026-01-15.");
             }
-            valid = ValidateText(fields[1], "Reference", 20, rowNumber, preview) && valid;
-            valid = ValidateText(fields[2], "Description", int.MaxValue, rowNumber, preview) && valid;
-            valid = ValidateText(fields[3], "AccountNo", 50, rowNumber, preview) && valid;
-            valid = ValidateText(fields[4], "AccountName", 200, rowNumber, preview) && valid;
+            valid = ValidateText(fields[1], "Reference", rowNumber, preview) && valid;
+            valid = ValidateText(fields[2], "Description", rowNumber, preview) && valid;
+            valid = ValidateText(fields[3], "AccountNo", rowNumber, preview) && valid;
+            valid = ValidateText(fields[4], "AccountName", rowNumber, preview) && valid;
             var headers = csv.HeaderRecord!;
             var hasSubAccounts = headers.Contains("SubAccountType");
             var company = fields[hasSubAccounts ? 9 : 7];
-            valid = ValidateText(company, "Company", 50, rowNumber, preview) && valid;
+            valid = ValidateText(company, "Company", rowNumber, preview) && valid;
             var moduleType = headers.Contains("ModuleType") ? fields[^1] : "LegacyGL";
-            valid = ValidateText(moduleType, "ModuleType", 50, rowNumber, preview) && valid;
+            valid = ValidateText(moduleType, "ModuleType", rowNumber, preview) && valid;
             bool hasDebit = TryParseAmount(fields[5], out decimal debit);
             bool hasCredit = TryParseAmount(fields[6], out decimal credit);
             if (!hasDebit || !hasCredit)
@@ -615,16 +615,11 @@ namespace IBS.Services
             });
         }
 
-        private static bool ValidateText(string value, string column, int maximumLength, int rowNumber, GlImportPreview preview)
+        private static bool ValidateText(string value, string column, int rowNumber, GlImportPreview preview)
         {
             if (string.IsNullOrWhiteSpace(value))
             {
                 AddError(preview, $"Row {rowNumber}: {column} is required.");
-                return false;
-            }
-            if (value.Length > maximumLength)
-            {
-                AddError(preview, $"Row {rowNumber}: {column} cannot exceed {maximumLength} characters.");
                 return false;
             }
             if (value.Contains('\0'))

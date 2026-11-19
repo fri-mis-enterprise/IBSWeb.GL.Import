@@ -14,20 +14,16 @@ namespace IBS.Models.Filpride.Books
         [Column(TypeName = "date")]
         public DateOnly Date { get; set; }
 
-        [Column(TypeName = "varchar(20)")]
         public string Reference { get; set; } = null!;
 
         [Display(Name = "Account Number")]
-        [Column(TypeName = "varchar(50)")]
         public string AccountNo { get; set; } = null!;
 
         [Display(Name = "Account Title")]
-        [Column(TypeName = "varchar(200)")]
         public string AccountTitle { get; set; } = null!;
 
         public string Description { get; set; } = null!;
 
-        [Column(TypeName = "varchar(50)")]
         public string? Company { get; set; }
 
         [DisplayFormat(DataFormatString = "{0:#,##0.0000;(#,##0.0000)}", ApplyFormatInEditMode = true)]
@@ -49,7 +45,6 @@ namespace IBS.Models.Filpride.Books
 
         public bool IsPosted { get; set; } = true;
 
-        [Column(TypeName = "varchar(50)")]
         public string ModuleType { get; set; } = string.Empty;
 
         public Guid? ImportBatchId { get; set; }
@@ -72,7 +67,6 @@ namespace IBS.Models.Filpride.Books
 
         public int? SubAccountId { get; set; }
 
-        [Column(TypeName = "varchar(200)")]
         public string? SubAccountName { get; set; }
 
         #endregion
@@ -83,7 +77,6 @@ namespace IBS.Models.Filpride.Books
 
         public int? CounterpartyId { get; set; }
 
-        [Column(TypeName = "varchar(200)")]
         public string? CounterpartyName { get; set; }
 
         #endregion

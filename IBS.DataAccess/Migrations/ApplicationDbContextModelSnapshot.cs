@@ -2637,16 +2637,16 @@ namespace IBS.DataAccess.Migrations
 
                     b.Property<string>("AccountNo")
                         .IsRequired()
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("text")
                         .HasColumnName("account_no");
 
                     b.Property<string>("AccountTitle")
                         .IsRequired()
-                        .HasColumnType("varchar(200)")
+                        .HasColumnType("text")
                         .HasColumnName("account_title");
 
                     b.Property<string>("Company")
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("text")
                         .HasColumnName("company");
 
                     b.Property<int?>("CounterpartyId")
@@ -2654,7 +2654,7 @@ namespace IBS.DataAccess.Migrations
                         .HasColumnName("counterparty_id");
 
                     b.Property<string>("CounterpartyName")
-                        .HasColumnType("varchar(200)")
+                        .HasColumnType("text")
                         .HasColumnName("counterparty_name");
 
                     b.Property<int?>("CounterpartyType")
@@ -2697,12 +2697,12 @@ namespace IBS.DataAccess.Migrations
 
                     b.Property<string>("ModuleType")
                         .IsRequired()
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("text")
                         .HasColumnName("module_type");
 
                     b.Property<string>("Reference")
                         .IsRequired()
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("text")
                         .HasColumnName("reference");
 
                     b.Property<int?>("SubAccountId")
@@ -2710,7 +2710,7 @@ namespace IBS.DataAccess.Migrations
                         .HasColumnName("sub_account_id");
 
                     b.Property<string>("SubAccountName")
-                        .HasColumnType("varchar(200)")
+                        .HasColumnType("text")
                         .HasColumnName("sub_account_name");
 
                     b.Property<int?>("SubAccountType")
@@ -2728,6 +2728,8 @@ namespace IBS.DataAccess.Migrations
 
                     b.HasIndex("Reference")
                         .HasDatabaseName("ix_filpride_general_ledger_books_reference");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Reference"), "hash");
 
                     b.ToTable("filpride_general_ledger_books", (string)null);
                 });
