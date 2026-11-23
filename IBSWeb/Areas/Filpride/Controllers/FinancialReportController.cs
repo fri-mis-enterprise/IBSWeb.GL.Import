@@ -1272,7 +1272,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 var trialBalance = await (
                     from totals in ledgerTotals
                     join account in accounts on totals.AccountId equals account.AccountId
-                    orderby account.AccountNumber
+                    orderby account.Priority,account.AccountNumber
                     select new
                     {
                         Account = account,
