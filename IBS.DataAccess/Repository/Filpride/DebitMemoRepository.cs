@@ -78,6 +78,52 @@ namespace IBS.DataAccess.Repository.Filpride
             return lastSeries.Substring(0, 3) + incrementedNumber.ToString("D9");
         }
 
+        public async Task CalculateTaxAmountsAsync(FilprideDebitMemo model,
+            CancellationToken cancellationToken = default)
+        {
+            if (model.SalesInvoiceId.HasValue == model.ServiceInvoiceId.HasValue)
+            {
+                throw new ArgumentException("Select exactly one sales or service invoice.");
+            }
+
+            if (model.SalesInvoiceId.HasValue)
+            {
+                var salesInvoice = await _db.FilprideSalesInvoices
+                    .Include(invoice => invoice.CustomerOrderSlip)
+                    .Include(invoice => invoice.Customer)
+                    .FirstOrDefaultAsync(invoice => invoice.SalesInvoiceId == model.SalesInvoiceId, cancellationToken)
+                    ?? throw new ArgumentException("Sales invoice not found.");
+                var vatType = salesInvoice.CustomerOrderSlip?.VatType ?? salesInvoice.Customer?.VatType;
+                var hasEwt = salesInvoice.CustomerOrderSlip?.HasEWT ?? salesInvoice.Customer?.WithHoldingTax ?? false;
+                var hasWvat = salesInvoice.CustomerOrderSlip?.HasWVAT ?? salesInvoice.Customer?.WithHoldingVat ?? false;
+                var netOfVatAmount = vatType == SD.VatType_Vatable
+                    ? DecimalRoundingHelper.ComputeNetOfVat(model.DebitAmount)
+                    : DecimalRoundingHelper.RoundToFour(model.DebitAmount);
+
+                model.CwtAmount = hasEwt
+                    ? DecimalRoundingHelper.ComputeEwtAmount(netOfVatAmount, salesInvoice.CwtPercent)
+                    : 0m;
+                model.CwVatAmount = hasWvat
+                    ? DecimalRoundingHelper.ComputeEwtAmount(netOfVatAmount, salesInvoice.CwVatPercent)
+                    : 0m;
+                return;
+            }
+
+            var serviceInvoice = await _db.FilprideServiceInvoices
+                .FirstOrDefaultAsync(invoice => invoice.ServiceInvoiceId == model.ServiceInvoiceId, cancellationToken)
+                ?? throw new ArgumentException("Service invoice not found.");
+            var serviceNetOfVatAmount = serviceInvoice.VatType == SD.VatType_Vatable
+                ? DecimalRoundingHelper.ComputeNetOfVat(model.DebitAmount)
+                : DecimalRoundingHelper.RoundToFour(model.DebitAmount);
+
+            model.CwtAmount = serviceInvoice.HasEwt
+                ? DecimalRoundingHelper.ComputeEwtAmount(serviceNetOfVatAmount, serviceInvoice.ServicePercent / 100m)
+                : 0m;
+            model.CwVatAmount = serviceInvoice.HasWvat
+                ? DecimalRoundingHelper.ComputeEwtAmount(serviceNetOfVatAmount, 0.05m)
+                : 0m;
+        }
+
         public async Task PostAsync(FilprideDebitMemo model,
             CancellationToken cancellationToken = default,
             List<AccountTitleDto>? accountTitlesDto = null,
@@ -111,13 +157,8 @@ namespace IBS.DataAccess.Repository.Filpride
                     ? ComputeVatAmount(netOfVatAmount)
                     : 0m;
 
-                var withHoldingTaxAmount = customerOrderSlip.HasEWT
-                    ? ComputeEwtAmount(netOfVatAmount, salesInvoice.DeliveryReceipt!.CwtPercent)
-                    : 0m;
-
-                var withHoldingVatAmount = customerOrderSlip.HasWVAT
-                    ? ComputeEwtAmount(netOfVatAmount, salesInvoice.DeliveryReceipt!.CwvPercent)
-                    : 0m;
+                var withHoldingTaxAmount = model.CwtAmount;
+                var withHoldingVatAmount = model.CwVatAmount;
 
                 var ledgers = new List<FilprideGeneralLedgerBook>
                 {
@@ -231,19 +272,15 @@ namespace IBS.DataAccess.Repository.Filpride
                 var serviceTitle = accountTitlesDto.Find(c => c.AccountNumber == service.CurrentAndPreviousNo)
                     ?? throw new ArgumentException($"Account title '{service.CurrentAndPreviousNo}' not found.");
 
-                var netDiscount = (model.Amount ?? 0m) - serviceInvoice.Discount;
+                var netDiscount = model.DebitAmount;
                 var netOfVatAmount = serviceInvoice.VatType == SD.VatType_Vatable
                     ? ComputeNetOfVat(netDiscount)
                     : netDiscount;
                 var vatAmount = serviceInvoice.VatType == SD.VatType_Vatable
                     ? ComputeVatAmount(netOfVatAmount)
                     : 0m;
-                var ewt = serviceInvoice.HasEwt
-                    ? ComputeEwtAmount(netOfVatAmount, serviceInvoice.ServicePercent / 100m)
-                    : 0m;
-                var wvat = serviceInvoice.HasWvat
-                    ? ComputeEwtAmount(netOfVatAmount, 0.05m)
-                    : 0m;
+                var ewt = model.CwtAmount;
+                var wvat = model.CwVatAmount;
 
                 var ledgers = new List<FilprideGeneralLedgerBook>
                 {

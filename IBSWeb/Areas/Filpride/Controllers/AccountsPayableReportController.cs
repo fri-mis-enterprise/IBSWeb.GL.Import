@@ -211,7 +211,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
 
                         page.Size(PageSizes.Legal.Landscape());
                         page.Margin(20);
-                        page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Times New Roman"));
+                        page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Lato"));
 
                         #endregion -- Page Setup
 
@@ -1044,7 +1044,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
 
                         page.Size(PageSizes.Legal.Landscape());
                         page.Margin(20);
-                        page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Times New Roman"));
+                        page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Lato"));
 
                         #endregion -- Page setup
 
@@ -1098,6 +1098,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                                 columns.RelativeColumn();
                                 columns.RelativeColumn();
                                 columns.RelativeColumn();
+                                columns.RelativeColumn();
                             });
 
                             #endregion -- Columns Definition
@@ -1114,6 +1115,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                                 header.Cell().Background(Colors.Grey.Lighten1).Border(0.5f).Padding(3).AlignCenter().AlignMiddle().Text("Quantity").SemiBold();
                                 header.Cell().Background(Colors.Grey.Lighten1).Border(0.5f).Padding(3).AlignCenter().AlignMiddle().Text("Unit").SemiBold();
                                 header.Cell().Background(Colors.Grey.Lighten1).Border(0.5f).Padding(3).AlignCenter().AlignMiddle().Text("Price").SemiBold();
+                                header.Cell().Background(Colors.Grey.Lighten1).Border(0.5f).Padding(3).AlignCenter().AlignMiddle().Text("Final Price").SemiBold();
                                 header.Cell().Background(Colors.Grey.Lighten1).Border(0.5f).Padding(3).AlignCenter().AlignMiddle().Text("Amount").SemiBold();
                                 header.Cell().Background(Colors.Grey.Lighten1).Border(0.5f).Padding(3).AlignCenter().AlignMiddle().Text("Remarks").SemiBold();
                             });
@@ -1131,8 +1133,10 @@ namespace IBSWeb.Areas.Filpride.Controllers
                                 table.Cell().Border(0.5f).Padding(3).Text(record.ProductName);
                                 table.Cell().Border(0.5f).Padding(3).AlignRight().Text(record.Quantity != 0 ? record.Quantity < 0 ? $"({Math.Abs(record.Quantity).ToString(SD.Two_Decimal_Format)})" : record.Quantity.ToString(SD.Two_Decimal_Format) : null).FontColor(record.Quantity < 0 ? Colors.Red.Medium : Colors.Black);
                                 table.Cell().Border(0.5f).Padding(3).Text(record.Product?.ProductUnit);
-                                table.Cell().Border(0.5f).Padding(3).AlignRight().Text((record.ActualPrices?.Count != 0 ? record.ActualPrices?.First(x => x.IsApproved).TriggeredPrice : record.Price) != 0
+                                table.Cell().Border(0.5f).Padding(3).AlignRight().Text(record.Price != 0
                                     ? record.Price < 0 ? $"({Math.Abs(record.Price).ToString(SD.Four_Decimal_Format)})" : record.Price.ToString(SD.Four_Decimal_Format) : null);
+                                table.Cell().Border(0.5f).Padding(3).AlignRight().Text(record.FinalPrice != 0
+                                    ? record.FinalPrice < 0 ? $"({Math.Abs(record.FinalPrice).ToString(SD.Four_Decimal_Format)})" : record.FinalPrice.ToString(SD.Four_Decimal_Format) : null);
                                 table.Cell().Border(0.5f).Padding(3).AlignRight().Text(record.Amount != 0 ? record.Amount < 0 ? $"({Math.Abs(record.Amount).ToString(SD.Two_Decimal_Format)})" : record.Amount.ToString(SD.Two_Decimal_Format) : null);
                                 table.Cell().Border(0.5f).Padding(3).Text(record.Remarks);
                             }
@@ -1238,18 +1242,19 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 worksheet.Cells["F7"].Value = "Quantity";
                 worksheet.Cells["G7"].Value = "Unit";
                 worksheet.Cells["H7"].Value = "Price";
-                worksheet.Cells["I7"].Value = "Amount";
-                worksheet.Cells["J7"].Value = "Remarks";
+                worksheet.Cells["I7"].Value = "Final Price";
+                worksheet.Cells["J7"].Value = "Amount";
+                worksheet.Cells["K7"].Value = "Remarks";
 
                 if (showVoidCancelColumns)
                 {
-                    worksheet.Cells[7, 11].Value = "Status";
-                    worksheet.Cells[7, 12].Value = "Voided By";
-                    worksheet.Cells[7, 13].Value = "Voided Date";
+                    worksheet.Cells[7, 12].Value = "Status";
+                    worksheet.Cells[7, 13].Value = "Voided By";
+                    worksheet.Cells[7, 14].Value = "Voided Date";
                 }
 
                 // Apply styling to the header row
-                using (var range = worksheet.Cells["A7:" + (showVoidCancelColumns ? "M7" : "J7")])
+                using (var range = worksheet.Cells["A7:" + (showVoidCancelColumns ? "N7" : "K7")])
                 {
                     range.Style.Font.Bold = true;
                     range.Style.Fill.PatternType = ExcelFillStyle.Solid;
@@ -1273,21 +1278,23 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     worksheet.Cells[row, 5].Value = po.ProductName;
                     worksheet.Cells[row, 6].Value = po.Quantity;
                     worksheet.Cells[row, 7].Value = po.Product?.ProductUnit;
-                    worksheet.Cells[row, 8].Value = po.ActualPrices!.Count != 0 ? po.ActualPrices!.First(x => x.IsApproved).TriggeredPrice : po.Price;
-                    worksheet.Cells[row, 9].Value = po.Amount;
-                    worksheet.Cells[row, 10].Value = po.Remarks;
+                    worksheet.Cells[row, 8].Value = po.Price;
+                    worksheet.Cells[row, 9].Value = po.FinalPrice;
+                    worksheet.Cells[row, 10].Value = po.Amount;
+                    worksheet.Cells[row, 11].Value = po.Remarks;
 
                     worksheet.Cells[row, 3].Style.Numberformat.Format = "MMM/dd/yyyy";
                     worksheet.Cells[row, 6].Style.Numberformat.Format = currencyFormat;
-                    worksheet.Cells[row, 8].Style.Numberformat.Format = currencyFormat;
-                    worksheet.Cells[row, 9].Style.Numberformat.Format = currencyFormat;
+                    worksheet.Cells[row, 8].Style.Numberformat.Format = SD.Four_Decimal_Format;
+                    worksheet.Cells[row, 9].Style.Numberformat.Format = SD.Four_Decimal_Format;
+                    worksheet.Cells[row, 10].Style.Numberformat.Format = currencyFormat;
 
                     if (showVoidCancelColumns)
                     {
-                        worksheet.Cells[row, 11].Value = po.Status;
-                        worksheet.Cells[row, 12].Value = po.VoidedBy;
-                        worksheet.Cells[row, 13].Value = po.VoidedDate;
-                        worksheet.Cells[row, 13].Style.Numberformat.Format = "MMM/dd/yyyy";
+                        worksheet.Cells[row, 12].Value = po.Status;
+                        worksheet.Cells[row, 13].Value = po.VoidedBy;
+                        worksheet.Cells[row, 14].Value = po.VoidedDate;
+                        worksheet.Cells[row, 14].Style.Numberformat.Format = "MMM/dd/yyyy";
                     }
 
                     row++;
@@ -1356,7 +1363,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
 
                         page.Size(PageSizes.Legal.Landscape());
                         page.Margin(20);
-                        page.DefaultTextStyle(x => x.FontSize(7).FontFamily("Times New Roman"));
+                        page.DefaultTextStyle(x => x.FontSize(7).FontFamily("Lato"));
 
                         #endregion -- Page setup
 
@@ -2336,7 +2343,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
 
                         page.Size(PageSizes.Legal.Landscape());
                         page.Margin(20);
-                        page.DefaultTextStyle(x => x.FontSize(7).FontFamily("Times New Roman"));
+                        page.DefaultTextStyle(x => x.FontSize(7).FontFamily("Lato"));
 
                         #endregion -- Page setup
 
@@ -3749,7 +3756,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
 
                         page.Size(PageSizes.Legal.Landscape());
                         page.Margin(20);
-                        page.DefaultTextStyle(x => x.FontSize(8).FontFamily("Times New Roman"));
+                        page.DefaultTextStyle(x => x.FontSize(8).FontFamily("Lato"));
 
                         #endregion -- Page setup
 
@@ -5726,20 +5733,21 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     range.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 }
 
-                var receivingReportsWithFreight = receivingReports.Where(rr => rr.DeliveryReceipt!.Freight > 0).ToList();
+                var receivingReportsWithFreight = receivingReports
+                    .Where(rr => rr.DeliveryReceipt!.Freight > 0)
+                    .ToList();
                 var sumOfFreightAmountWithFreight = receivingReportsWithFreight
                     .Sum(rr => RoundToFour(rr.DeliveryReceipt!.FreightAmount));
 
                 var sumOfQuantityWithFreight = receivingReportsWithFreight
-                    .Sum(rr => rr.QuantityReceived);
+                    .Sum(rr => rr.DeliveryReceipt!.Quantity);
 
                 var sumOfQuantity = receivingReports.Sum(rr => rr.QuantityReceived);
                 var sumOfAmount = receivingReports.Sum(rr => rr.Amount);
                 var averageCostPerLiter = DivideOrZero(sumOfAmount, sumOfQuantity);
 
                 var sumOfFreightAmount = sumOfFreightAmountWithFreight;
-                var averageFreightPerLiterWithFreight = DivideOrZero(sumOfFreightAmountWithFreight, sumOfQuantityWithFreight);
-                var averageFreightPerLiter = DivideOrZero(sumOfFreightAmount, sumOfQuantity);
+                var averageFreightPerLiter = DivideOrZero(sumOfFreightAmountWithFreight, sumOfQuantityWithFreight);
 
                 var sumOfAmountBasedOnSoa = receivingReports.Sum(rr => RoundToFour(rr.CostBasedOnSoa * rr.QuantityReceived));
                 var averageCostBasedOnSoa = DivideOrZero(sumOfAmountBasedOnSoa, sumOfQuantity);
@@ -5750,7 +5758,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 worksheet.Cells[28, 6].Value = sumOfQuantity;
                 worksheet.Cells[29, 3].Value = "Cost/ltr: ";
                 worksheet.Cells[29, 4].Value = averageCostPerLiter;
-                worksheet.Cells[29, 5].Value = averageFreightPerLiterWithFreight;
+                worksheet.Cells[29, 5].Value = averageFreightPerLiter;
                 worksheet.Cells[30, 3].Value = "Total Amount";
                 worksheet.Cells[30, 4].Value = sumOfAmount;
                 worksheet.Cells[30, 5].Value = sumOfFreightAmount;
@@ -5828,10 +5836,10 @@ namespace IBSWeb.Areas.Filpride.Controllers
                         .Sum(rr => rr.DeliveryReceipt!.FreightAmount);
 
                     var freightQuantityPerSupplier = rrByHauler.Where(rr => rr.DeliveryReceipt!.Freight > 0)
-                        .Sum(rr => rr.QuantityReceived);
+                        .Sum(rr => rr.DeliveryReceipt!.Quantity);
 
                     worksheet.Cells[38, col].Value = freightQuantityPerSupplier > 0
-                        ? freightAmountPerSupplier / freightQuantityPerSupplier
+                        ? DivideOrZero(freightAmountPerSupplier, freightQuantityPerSupplier)
                         : 0;
                     worksheet.Cells[38, col].Style.Numberformat.Format = currencyFormatFourDecimal;
                     col++;
@@ -5860,7 +5868,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 // use if-else to determine value of freight if multiple or single hauler
                 worksheet.Cells[38, col].Value = DivideOrZero(totalFreightAmount, sumOfQuantityWithFreight); // new cost/ltr of freight
                 worksheet.Cells[38, col].Style.Numberformat.Format = currencyFormatFourDecimal;
-                worksheet.Cells[29, 6].Value = RoundToFour(averageFreightPerLiterWithFreight + averageCostPerLiter); // cost/ltr + freight/ltr if multiple hauler
+                worksheet.Cells[29, 6].Value = RoundToFour(averageFreightPerLiter + averageCostPerLiter); // cost/ltr + freight/ltr if multiple hauler
                 worksheet.Cells[30, 6].Value = RoundToFour(sumOfAmount + sumOfFreightAmountWithFreight); // total amount with total freight amount
 
                 worksheet.Cells[32, 4].Value = sumOfAmount;

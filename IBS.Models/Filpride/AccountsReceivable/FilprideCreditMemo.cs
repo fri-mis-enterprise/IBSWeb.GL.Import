@@ -60,6 +60,12 @@ namespace IBS.Models.Filpride.AccountsReceivable
         [Column(TypeName = "numeric(18,4)")]
         public decimal CreditAmount { get; set; }
 
+        [Column(TypeName = "numeric(18,4)")]
+        public decimal CwtAmount { get; set; }
+
+        [Column(TypeName = "numeric(18,4)")]
+        public decimal CwVatAmount { get; set; }
+
         [Required]
         [StringLength(20)]
         public string Source { get; set; } = null!;

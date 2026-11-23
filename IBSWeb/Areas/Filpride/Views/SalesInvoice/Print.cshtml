@@ -1,9 +1,6 @@
-@using IBS.Models
 @using IBS.Models.Enums
-@using IBS.Utility
 @using IBS.Utility.Constants
 @using Microsoft.Extensions.Options
-@using Microsoft.AspNetCore.Identity
 @model FilprideSalesInvoice
 @inject IOptions<BrandingOptions> BrandingOptions
 
@@ -16,21 +13,20 @@
     var customerAddress = Model.CustomerAddress;
     var customerTin = Model.CustomerTin;
     var customerBusinessStyle = Model.CustomerOrderSlip?.BusinessStyle ?? Model.Customer!.BusinessStyle;
-    var customerVatType = Model.CustomerOrderSlip?.VatType ?? Model.Customer!.VatType;
-    var hasEwt = Model.CustomerOrderSlip?.HasEWT ?? Model.Customer!.WithHoldingTax;
-    var hasWvat = Model.CustomerOrderSlip?.HasWVAT ?? Model.Customer!.WithHoldingVat;
+    var vatType = Model.CustomerOrderSlip?.VatType ?? Model.Customer!.VatType;
     var productName = Model.CustomerOrderSlip?.ProductName ?? Model.Product!.ProductName;
-
-    var netDiscount = Model.Amount - Model.Discount;
-    var netOfVatAmount = customerVatType == SD.VatType_Vatable ? DecimalRoundingHelper.ComputeNetOfVat(netDiscount) : netDiscount;
-    var vatAmount = customerVatType == SD.VatType_Vatable ? DecimalRoundingHelper.ComputeVatAmount(netOfVatAmount) : 0;
-
-    // NOTE: EWT and WVAT calculations is revised from the hardcoded 1% rate to dynamic percentages from the Customer Master File then store the rates in invoice.
-    // NOTE: All invoices dated July 3–August 26 that is already printed and submitted to customers will retain the 1% rate to keep the system records aligned with the printed copies.
-    var withHoldingTaxAmount = hasEwt ? DecimalRoundingHelper.ComputeEwtAmount(netOfVatAmount, Model.CwtPercent) : 0;
-    var withHoldingVatAmount = hasWvat ? DecimalRoundingHelper.ComputeEwtAmount(netOfVatAmount, Model.CwVatPercent) : 0;
-
     var decimalFormat = customerType != nameof(CustomerType.Government) ? SD.Two_Decimal_Format : SD.Four_Decimal_Format;
+
+    var grossAmount = Model.Amount;
+    var vatableSales = vatType == SD.VatType_Vatable ? DecimalRoundingHelper.ComputeNetOfVat(grossAmount) : 0m;
+    var zeroRatedSales = vatType == SD.VatType_ZeroRated ? grossAmount : 0m;
+    var exemptSales = vatType == SD.VatType_Exempt ? grossAmount : 0m;
+    var discount = Model.Discount;
+    var vatAmount = vatType == SD.VatType_Vatable ? DecimalRoundingHelper.ComputeVatAmount(vatableSales) : 0m;
+    var ewtAmount = Model.CwtAmountPaid + Model.CwtBalance;
+    var wvatAmount = Model.CwVatAmountPaid + Model.CwVatBalance;
+    var amountDue = grossAmount - discount;
+
 }
 
 <style>
@@ -89,7 +85,7 @@
 </div>
 
 <div style="margin-top:20px;">
-    <table class="table-bordered text-center" style="table-layout: fixed; width: 99.9%;">
+    <table class="table-bordered document-grid text-center" style="table-layout: fixed; width: 99.9%;">
         <tbody>
             <tr>
                 <td><b>PRODUCT DESCRIPTION</b></td>
@@ -110,63 +106,16 @@
     </table>
 </div>
 @{
-    if (customerVatType == SD.VatType_Vatable)
-    {
-        if (hasEwt && !hasWvat)
-        {
-            <p style="line-height: 1; margin-top:20px;">
-                Creditable Withholding Tax with the amount of <b>@withHoldingTaxAmount.ToString(decimalFormat)</b> is computed for this invoice.<br />
-                Please attach BIR Form 2307 to your payment if you deducted Expanded Withholding Tax.
-            </p>
-        }
-        else if (hasWvat && !hasEwt)
-        {
-            <p style="line-height: 1; margin-top:20px;">
-                Creditable Withholding Vat with the amount of <b>@withHoldingVatAmount.ToString(decimalFormat)</b> is computed for this invoice.<br />
-                Please attach BIR Form 2306 to your payment if you deducted Expanded Withholding Vat.
-            </p>
-        }
-        else if (hasEwt && hasWvat)
-        {
-            <p style="line-height: 1; margin-top:20px;">
-                Creditable Withholding Tax with the amount of <b>@withHoldingTaxAmount.ToString(decimalFormat)</b> is computed for this invoice.<br />
-                Creditable Withholding Vat with the amount of <b>@withHoldingVatAmount.ToString(decimalFormat)</b> is computed for this invoice.<br />
-                Please attach BIR Form 2306 and 2307 to your payment if you deducted Expanded Withholding Tax and Vat.
-            </p>
-        }
-    }
-    else
-    {
-        if (hasEwt && !hasWvat)
-        {
-            <p style="line-height: 1; margin-top:20px;">
-                Creditable Withholding Tax with the amount of <b>@withHoldingTaxAmount.ToString(decimalFormat)</b> is computed for this invoice.<br />
-                Please attach BIR Form 2307 to your payment if you deducted Expanded Withholding Tax.
-            </p>
-        }
-        else if (hasWvat && !hasEwt)
-        {
-            <p style="line-height: 1; margin-top:20px;">
-                Creditable Withholding Vat with the amount of <b>@withHoldingVatAmount.ToString(decimalFormat)</b> is computed for this invoice.<br />
-                Please attach BIR Form 2306 to your payment if you deducted Expanded Withholding Vat.
-            </p>
-        }
-        else if (hasEwt && hasWvat)
-        {
-            <p style="line-height: 1; margin-top:20px;">
-                Creditable Withholding Tax with the amount of <b>@withHoldingTaxAmount.ToString(decimalFormat)</b> is computed for this invoice.<br />
-                Creditable Withholding Vat with the amount of <b>@withHoldingVatAmount.ToString(decimalFormat)</b> is computed for this invoice.<br />
-                Please attach BIR Form 2306 and 2307 to your payment if you deducted Expanded Withholding Tax and Vat.
-            </p>
-        }
-    }
+    <p style="line-height: 1; margin-top:20px;">
+        Please attach BIR 2307 to your payment.
+    </p>
 }
 
 <table class="w-100" style="height: 170px; margin-top: 20px; table-layout: fixed;">
     <tbody>
         <tr>
             <td style="width: 200px; height: 200px; padding: 0; margin: 0; vertical-align: top;">
-                <table class="table-bordered w-100 h-100" style="border-collapse: collapse;">
+                <table class="table-bordered document-grid w-100 h-100" style="border-collapse: collapse;">
                     <tbody>
                     <tr>
                         <td style="padding: 4px 10px;">
@@ -185,7 +134,7 @@
                 </table>
             </td>
             <td>
-                <table class="table-bordered w-100 h-100" style="padding: 0; margin: 0; table-layout: fixed;">
+                <table class="table-bordered document-grid w-100 h-100" style="padding: 0; margin: 0; table-layout: fixed;">
                     <tbody>
 
                         <tr class="align-text-top text-center text-nowrap">
@@ -212,66 +161,39 @@
                 </table>
             </td>
             <td>
-                <table class="table-bordered w-100 h-100" style="padding: 0; margin: 0; table-layout: fixed;">
+                <table class="table-bordered document-grid w-100 h-100" style="padding: 0; margin: 0; table-layout: fixed;">
                     <tbody class="text-nowrap table-font-bold">
                         <tr style="padding-left: 8%;">
-                            <td style="padding-left: 0.5rem;"><b>Vatable Sales: </b></td>
-                            @if (customerVatType == SD.VatType_Vatable)
-                            {
-                                <td class="text-end px-2">@netOfVatAmount.ToString(decimalFormat)</td>
-                            }
-                            else
-                            {
-                                <td class="text-end px-2"></td>
-                            }
+                            <td style="padding-left: 0.5rem;"><b>VATable Sales: </b></td>
+                            <td class="text-end px-2">@vatableSales.ToString(decimalFormat)</td>
                         </tr>
                         <tr style="padding-left: 8%;">
                             <td style="padding-left: 0.5rem;"><b>Zero-Rated Sales: </b></td>
-                            @if (customerVatType == SD.VatType_ZeroRated)
-                            {
-                                <td class="text-end px-2">@netOfVatAmount.ToString(decimalFormat)</td>
-                            }
-                            else
-                            {
-                                <td class="text-end px-2"></td>
-                            }
+                            <td class="text-end px-2">@zeroRatedSales.ToString(decimalFormat)</td>
                         </tr>
                         <tr style="padding-left: 8%;">
                             <td style="padding-left: 0.5rem;"><b>VAT-Exempt Sales: </b></td>
-                            @if (customerVatType == SD.VatType_Exempt)
-                            {
-                                <td class="text-end px-2">@netOfVatAmount.ToString(decimalFormat)</td>
-                            }
-                            else
-                            {
-                                <td class="text-end px-2"></td>
-                            }
+                            <td class="text-end px-2">@exemptSales.ToString(decimalFormat)</td>
                         </tr>
                         <tr style="padding-left: 8%;">
-                            <td style="padding-left: 0.5rem;"><b>VAT Amount: </b></td>
-                            @if (customerVatType == SD.VatType_Vatable)
-                            {
-                                <td class="text-end px-2"> @vatAmount.ToString(decimalFormat)</td>
-                            }
-                            else
-                            {
-                                <td class="text-end px-2"></td>
-                            }
+                            <td style="padding-left: 0.5rem;"><b>Less Discount: </b></td>
+                            <td class="text-end px-2">@discount.ToString(decimalFormat)</td>
                         </tr>
                         <tr style="padding-left: 8%;">
-                            <td style="padding-left: 0.5rem;"><b>Discount: </b></td>
-                            @if (Model.Discount != 0)
-                            {
-                                <td class="text-end px-2">@Model.Discount.ToString(decimalFormat)</td>
-                            }
-                            else
-                            {
-                                <td></td>
-                            }
+                            <td style="padding-left: 0.5rem;"><b>Add VAT Amount: </b></td>
+                            <td class="text-end px-2">@vatAmount.ToString(decimalFormat)</td>
                         </tr>
                         <tr style="padding-left: 8%;">
-                            <td style="padding-left: 0.5rem;"><b>TOTAL SALES: </b></td>
-                            <td class="text-end px-2">@Model.Amount.ToString(decimalFormat)</td>
+                            <td style="padding-left: 0.5rem;"><b>Less Withholding Tax: </b></td>
+                            <td class="text-end px-2">@ewtAmount.ToString(decimalFormat)</td>
+                        </tr>
+                        <tr style="padding-left: 8%;">
+                            <td style="padding-left: 0.5rem;"><b>Less Withholding VAT: </b></td>
+                            <td class="text-end px-2">@wvatAmount.ToString(decimalFormat)</td>
+                        </tr>
+                        <tr style="padding-left: 8%;">
+                            <td style="padding-left: 0.5rem;"><b>Total Amount Due: </b></td>
+                            <td class="text-end px-2">@amountDue.ToString(decimalFormat)</td>
                         </tr>
                     </tbody>
                 </table>
@@ -280,7 +202,7 @@
     </tbody>
 </table>
 
-<table class="table-bordered" style="margin-top:20px;">
+<table class="table-bordered document-grid" style="margin-top:20px;">
     <tbody>
         <tr style="line-height: 1;">
             <td class="align-text-top">RECEIVED the above items in good order and condition. The Undersigned agrees to pay the total amount of this invoice in accordance to the terms appearing to the terms above.</td>

@@ -77,6 +77,53 @@ namespace IBS.DataAccess.Repository.Filpride
             return lastSeries.Substring(0, 3) + incrementedNumber.ToString("D9");
         }
 
+        public async Task CalculateTaxAmountsAsync(FilprideCreditMemo model,
+            CancellationToken cancellationToken = default)
+        {
+            if (model.SalesInvoiceId.HasValue == model.ServiceInvoiceId.HasValue)
+            {
+                throw new ArgumentException("Select exactly one sales or service invoice.");
+            }
+
+            var creditAmount = -Math.Abs(model.CreditAmount);
+            if (model.SalesInvoiceId.HasValue)
+            {
+                var salesInvoice = await _db.FilprideSalesInvoices
+                    .Include(invoice => invoice.CustomerOrderSlip)
+                    .Include(invoice => invoice.Customer)
+                    .FirstOrDefaultAsync(invoice => invoice.SalesInvoiceId == model.SalesInvoiceId, cancellationToken)
+                    ?? throw new ArgumentException("Sales invoice not found.");
+                var vatType = salesInvoice.CustomerOrderSlip?.VatType ?? salesInvoice.Customer?.VatType;
+                var hasEwt = salesInvoice.CustomerOrderSlip?.HasEWT ?? salesInvoice.Customer?.WithHoldingTax ?? false;
+                var hasWvat = salesInvoice.CustomerOrderSlip?.HasWVAT ?? salesInvoice.Customer?.WithHoldingVat ?? false;
+                var netOfVatAmount = vatType == SD.VatType_Vatable
+                    ? DecimalRoundingHelper.ComputeNetOfVat(creditAmount)
+                    : DecimalRoundingHelper.RoundToFour(creditAmount);
+
+                model.CwtAmount = hasEwt
+                    ? DecimalRoundingHelper.ComputeEwtAmount(netOfVatAmount, salesInvoice.CwtPercent)
+                    : 0m;
+                model.CwVatAmount = hasWvat
+                    ? DecimalRoundingHelper.ComputeEwtAmount(netOfVatAmount, salesInvoice.CwVatPercent)
+                    : 0m;
+                return;
+            }
+
+            var serviceInvoice = await _db.FilprideServiceInvoices
+                .FirstOrDefaultAsync(invoice => invoice.ServiceInvoiceId == model.ServiceInvoiceId, cancellationToken)
+                ?? throw new ArgumentException("Service invoice not found.");
+            var serviceNetOfVatAmount = serviceInvoice.VatType == SD.VatType_Vatable
+                ? DecimalRoundingHelper.ComputeNetOfVat(creditAmount)
+                : DecimalRoundingHelper.RoundToFour(creditAmount);
+
+            model.CwtAmount = serviceInvoice.HasEwt
+                ? DecimalRoundingHelper.ComputeEwtAmount(serviceNetOfVatAmount, serviceInvoice.ServicePercent / 100m)
+                : 0m;
+            model.CwVatAmount = serviceInvoice.HasWvat
+                ? DecimalRoundingHelper.ComputeEwtAmount(serviceNetOfVatAmount, 0.05m)
+                : 0m;
+        }
+
         public async Task PostAsync(FilprideCreditMemo model,
             CancellationToken cancellationToken = default,
             List<AccountTitleDto>? accountTitlesDto = null,
@@ -102,8 +149,8 @@ namespace IBS.DataAccess.Repository.Filpride
                 var salesTitle = accountTitlesDto.Find(c => c.AccountNumber == salesAcctNo)
                     ?? throw new ArgumentException($"Account title '{salesAcctNo}' not found.");
 
-                decimal withHoldingTaxAmount = 0m;
-                decimal withHoldingVatAmount = 0m;
+                var withHoldingTaxAmount = model.CwtAmount;
+                var withHoldingVatAmount = model.CwVatAmount;
                 decimal netOfVatAmount;
                 decimal vatAmount = 0m;
 
@@ -115,16 +162,6 @@ namespace IBS.DataAccess.Repository.Filpride
                 else
                 {
                     netOfVatAmount = model.CreditAmount;
-                }
-
-                if (customerOrderSlip.HasEWT)
-                {
-                    withHoldingTaxAmount = ComputeEwtAmount(Math.Abs(netOfVatAmount), salesInvoice.DeliveryReceipt!.CwtPercent) * -1m;
-                }
-
-                if (customerOrderSlip.HasWVAT)
-                {
-                    withHoldingVatAmount = ComputeEwtAmount(Math.Abs(netOfVatAmount), salesInvoice.DeliveryReceipt!.CwvPercent) * -1m;
                 }
 
                 var ledgers = new List<FilprideGeneralLedgerBook>
@@ -239,25 +276,12 @@ namespace IBS.DataAccess.Repository.Filpride
                 var serviceTitle = accountTitlesDto.Find(c => c.AccountNumber == service.CurrentAndPreviousNo)
                     ?? throw new ArgumentException($"Account title '{service.CurrentAndPreviousNo}' not found.");
 
-                decimal netAmount;
-                if (serviceInvoice.VatType == SD.VatType_Vatable)
-                {
-                    netAmount = DecimalRoundingHelper.ComputeNetOfVat((model.Amount ?? 0m) - serviceInvoice.Discount);
-                    var total = DecimalRoundingHelper.ComputeNetOfVat(model.Amount ?? 0m);
-                    var roundedNetAmount = DecimalRoundingHelper.RoundToFour(netAmount);
-                    if (roundedNetAmount > total)
-                    {
-                        var shortAmount = netAmount - total;
-                        netAmount -= shortAmount;
-                    }
-                }
-                else
-                {
-                    netAmount = (model.Amount ?? 0m) - serviceInvoice.Discount;
-                }
+                var netAmount = serviceInvoice.VatType == SD.VatType_Vatable
+                    ? ComputeNetOfVat(Math.Abs(model.CreditAmount))
+                    : Math.Abs(model.CreditAmount);
 
-                decimal withHoldingTaxAmount = 0m;
-                decimal withHoldingVatAmount = 0m;
+                var withHoldingTaxAmount = model.CwtAmount;
+                var withHoldingVatAmount = model.CwVatAmount;
                 decimal netOfVatAmount = 0m;
                 decimal vatAmount = 0m;
 
@@ -269,18 +293,6 @@ namespace IBS.DataAccess.Repository.Filpride
                 else
                 {
                     netOfVatAmount = model.CreditAmount;
-                }
-
-                if (serviceInvoice.HasEwt)
-                {
-                    withHoldingTaxAmount = ComputeEwtAmount(
-                        Math.Abs(netOfVatAmount),
-                        serviceInvoice.ServicePercent / 100m) * -1m;
-                }
-
-                if (serviceInvoice.HasWvat)
-                {
-                    withHoldingVatAmount = ComputeEwtAmount(Math.Abs(netOfVatAmount), 0.05m) * -1m;
                 }
 
                 var ledgers = new List<FilprideGeneralLedgerBook>

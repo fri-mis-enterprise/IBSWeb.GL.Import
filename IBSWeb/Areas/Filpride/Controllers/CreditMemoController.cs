@@ -351,6 +351,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     model.CreditAmount = -model.Amount ?? 0;
                 }
 
+                await _unitOfWork.FilprideCreditMemo.CalculateTaxAmountsAsync(model, cancellationToken);
                 await _unitOfWork.FilprideCreditMemo.AddAsync(model, cancellationToken);
 
                 #region --Audit Trail Recording
@@ -533,6 +534,8 @@ namespace IBSWeb.Areas.Filpride.Controllers
                         existingCm.CreditAmount = -model.Amount ?? 0;
                         break;
                 }
+
+                await _unitOfWork.FilprideCreditMemo.CalculateTaxAmountsAsync(existingCm, cancellationToken);
 
                 if (existingCm.Status == nameof(DmCmStatus.ForPosting))
                 {
@@ -1022,6 +1025,18 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 worksheet2.Cells["AE1"].Value = "CanceledDate";
                 worksheet2.Cells["AF1"].Value = "VoidedBy";
                 worksheet2.Cells["AG1"].Value = "VoidedDate";
+                worksheet2.Cells["AH1"].Value = "CustomerAddress";
+                worksheet2.Cells["AI1"].Value = "CustomerTin";
+                worksheet2.Cells["AJ1"].Value = "PaymentStatus";
+                worksheet2.Cells["AK1"].Value = "PurchaseOrderId";
+                worksheet2.Cells["AL1"].Value = "ReceivingReportId";
+                worksheet2.Cells["AM1"].Value = "DeliveryReceiptId";
+                worksheet2.Cells["AN1"].Value = "CustomerOrderSlipId";
+                worksheet2.Cells["AO1"].Value = "Terms";
+                worksheet2.Cells["AP1"].Value = "DebitAmount";
+                worksheet2.Cells["AQ1"].Value = "CreditAmount";
+                worksheet2.Cells["AR1"].Value = "CwtPercent";
+                worksheet2.Cells["AS1"].Value = "CwVatPercent";
 
                 #endregion -- Sales Invoice Table Header --
 
@@ -1056,6 +1071,23 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 worksheet3.Cells["Y1"].Value = "CanceledDate";
                 worksheet3.Cells["Z1"].Value = "VoidedBy";
                 worksheet3.Cells["AA1"].Value = "VoidedDate";
+                worksheet3.Cells["AB1"].Value = "CustomerName";
+                worksheet3.Cells["AC1"].Value = "CustomerAddress";
+                worksheet3.Cells["AD1"].Value = "CustomerTin";
+                worksheet3.Cells["AE1"].Value = "CustomerBusinessStyle";
+                worksheet3.Cells["AF1"].Value = "ServiceName";
+                worksheet3.Cells["AG1"].Value = "ServicePercent";
+                worksheet3.Cells["AH1"].Value = "PaymentStatus";
+                worksheet3.Cells["AI1"].Value = "CwtBalance";
+                worksheet3.Cells["AJ1"].Value = "CwVatBalance";
+                worksheet3.Cells["AK1"].Value = "CwtAmountPaid";
+                worksheet3.Cells["AL1"].Value = "CwVatAmountPaid";
+                worksheet3.Cells["AM1"].Value = "DebitAmount";
+                worksheet3.Cells["AN1"].Value = "CreditAmount";
+                worksheet3.Cells["AO1"].Value = "VatType";
+                worksheet3.Cells["AP1"].Value = "HasEwt";
+                worksheet3.Cells["AQ1"].Value = "HasWvat";
+                worksheet3.Cells["AR1"].Value = "DeliveryReceiptId";
 
                 #endregion -- Service Invoice Table Header --
 
@@ -1090,6 +1122,11 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 worksheet.Cells["Y1"].Value = "CanceledDate";
                 worksheet.Cells["Z1"].Value = "VoidedBy";
                 worksheet.Cells["AA1"].Value = "VoidedDate";
+                worksheet.Cells["AB1"].Value = "CwtAmount";
+                worksheet.Cells["AC1"].Value = "CwVatAmount";
+                worksheet.Cells["AD1"].Value = "Status";
+                worksheet.Cells["AE1"].Value = "ApprovedBy";
+                worksheet.Cells["AF1"].Value = "ApprovedDate";
 
                 #endregion -- Credit Memo Table Header --
 
@@ -1126,6 +1163,11 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     worksheet.Cells[row, 25].Value = item.CanceledDate?.ToString("yyyy-MM-dd HH:mm:ss.ffffff") ?? null;
                     worksheet.Cells[row, 26].Value = item.VoidedBy;
                     worksheet.Cells[row, 27].Value = item.VoidedDate?.ToString("yyyy-MM-dd HH:mm:ss.ffffff") ?? null;
+                    worksheet.Cells[row, 28].Value = item.CwtAmount;
+                    worksheet.Cells[row, 29].Value = item.CwVatAmount;
+                    worksheet.Cells[row, 30].Value = item.Status;
+                    worksheet.Cells[row, 31].Value = item.ApprovedBy;
+                    worksheet.Cells[row, 32].Value = item.ApprovedDate?.ToString("yyyy-MM-dd HH:mm:ss.ffffff") ?? null;
 
                     row++;
                 }
@@ -1182,6 +1224,18 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     worksheet2.Cells[siRow, 31].Value = item.SalesInvoice.CanceledDate?.ToString("yyyy-MM-dd HH:mm:ss.ffffff") ?? null;
                     worksheet2.Cells[siRow, 32].Value = item.SalesInvoice.VoidedBy;
                     worksheet2.Cells[siRow, 33].Value = item.SalesInvoice.VoidedDate?.ToString("yyyy-MM-dd HH:mm:ss.ffffff") ?? null;
+                    worksheet2.Cells[siRow, 34].Value = item.SalesInvoice.CustomerAddress;
+                    worksheet2.Cells[siRow, 35].Value = item.SalesInvoice.CustomerTin;
+                    worksheet2.Cells[siRow, 36].Value = item.SalesInvoice.PaymentStatus;
+                    worksheet2.Cells[siRow, 37].Value = item.SalesInvoice.PurchaseOrderId;
+                    worksheet2.Cells[siRow, 38].Value = item.SalesInvoice.ReceivingReportId;
+                    worksheet2.Cells[siRow, 39].Value = item.SalesInvoice.DeliveryReceiptId;
+                    worksheet2.Cells[siRow, 40].Value = item.SalesInvoice.CustomerOrderSlipId;
+                    worksheet2.Cells[siRow, 41].Value = item.SalesInvoice.Terms;
+                    worksheet2.Cells[siRow, 42].Value = item.SalesInvoice.DebitAmount;
+                    worksheet2.Cells[siRow, 43].Value = item.SalesInvoice.CreditAmount;
+                    worksheet2.Cells[siRow, 44].Value = item.SalesInvoice.CwtPercent;
+                    worksheet2.Cells[siRow, 45].Value = item.SalesInvoice.CwVatPercent;
 
                     siRow++;
                 }
@@ -1232,19 +1286,28 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     worksheet3.Cells[svRow, 25].Value = item.ServiceInvoice.CanceledDate?.ToString("yyyy-MM-dd HH:mm:ss.ffffff") ?? null;
                     worksheet3.Cells[svRow, 26].Value = item.ServiceInvoice.VoidedBy;
                     worksheet3.Cells[svRow, 27].Value = item.ServiceInvoice.VoidedDate?.ToString("yyyy-MM-dd HH:mm:ss.ffffff") ?? null;
+                    worksheet3.Cells[svRow, 28].Value = item.ServiceInvoice.CustomerName;
+                    worksheet3.Cells[svRow, 29].Value = item.ServiceInvoice.CustomerAddress;
+                    worksheet3.Cells[svRow, 30].Value = item.ServiceInvoice.CustomerTin;
+                    worksheet3.Cells[svRow, 31].Value = item.ServiceInvoice.CustomerBusinessStyle;
+                    worksheet3.Cells[svRow, 32].Value = item.ServiceInvoice.ServiceName;
+                    worksheet3.Cells[svRow, 33].Value = item.ServiceInvoice.ServicePercent;
+                    worksheet3.Cells[svRow, 34].Value = item.ServiceInvoice.PaymentStatus;
+                    worksheet3.Cells[svRow, 35].Value = item.ServiceInvoice.CwtBalance;
+                    worksheet3.Cells[svRow, 36].Value = item.ServiceInvoice.CwVatBalance;
+                    worksheet3.Cells[svRow, 37].Value = item.ServiceInvoice.CwtAmountPaid;
+                    worksheet3.Cells[svRow, 38].Value = item.ServiceInvoice.CwVatAmountPaid;
+                    worksheet3.Cells[svRow, 39].Value = item.ServiceInvoice.DebitAmount;
+                    worksheet3.Cells[svRow, 40].Value = item.ServiceInvoice.CreditAmount;
+                    worksheet3.Cells[svRow, 41].Value = item.ServiceInvoice.VatType;
+                    worksheet3.Cells[svRow, 42].Value = item.ServiceInvoice.HasEwt;
+                    worksheet3.Cells[svRow, 43].Value = item.ServiceInvoice.HasWvat;
+                    worksheet3.Cells[svRow, 44].Value = item.ServiceInvoice.DeliveryReceiptId;
 
                     svRow++;
                 }
 
                 #endregion -- Service Invoice Export --
-
-                //Set password in Excel
-                foreach (var excelWorkSheet in package.Workbook.Worksheets)
-                {
-                    excelWorkSheet.Protection.SetPassword("mis123");
-                }
-
-                package.Workbook.Protection.SetPassword("mis123");
 
                 // Convert the Excel package to a byte array
                 var excelBytes = await package.GetAsByteArrayAsync();
@@ -1490,8 +1553,8 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 var (salesAcctNo, _) = _unitOfWork.FilprideSalesInvoice.GetSalesAccountTitle(model.SalesInvoice!.Product!.ProductCode);
                 var salesTitle = accountTitlesDto.Find(c => c.AccountNumber == salesAcctNo) ?? throw new ArgumentException($"Account title '{salesAcctNo}' not found.");
 
-                decimal withHoldingTaxAmount = 0;
-                decimal withHoldingVatAmount = 0;
+                var withHoldingTaxAmount = model.CwtAmount;
+                var withHoldingVatAmount = model.CwVatAmount;
                 decimal netOfVatAmount;
                 decimal vatAmount = 0;
 
@@ -1503,16 +1566,6 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 else
                 {
                     netOfVatAmount = model.CreditAmount;
-                }
-
-                if (model.SalesInvoice.CustomerOrderSlip.HasEWT)
-                {
-                    withHoldingTaxAmount = _unitOfWork.FilprideCreditMemo.ComputeEwtAmount(Math.Abs(netOfVatAmount), model.SalesInvoice.DeliveryReceipt!.CwtPercent) * -1;
-                }
-
-                if (model.SalesInvoice.CustomerOrderSlip.HasWVAT)
-                {
-                    withHoldingVatAmount = _unitOfWork.FilprideCreditMemo.ComputeEwtAmount(Math.Abs(netOfVatAmount), model.SalesInvoice.DeliveryReceipt!.CwvPercent) * -1;
                 }
 
                 var ledgers = new List<FilprideGeneralLedgerBook>
@@ -1630,8 +1683,8 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     ? _unitOfWork.FilprideCreditMemo.ComputeNetOfVat(Math.Abs(model.CreditAmount))
                     : Math.Abs(model.CreditAmount);
 
-                decimal withHoldingTaxAmount = 0;
-                decimal withHoldingVatAmount = 0;
+                var withHoldingTaxAmount = model.CwtAmount;
+                var withHoldingVatAmount = model.CwVatAmount;
                 decimal netOfVatAmount = 0;
                 decimal vatAmount = 0;
 
@@ -1643,16 +1696,6 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 else
                 {
                     netOfVatAmount = model.CreditAmount;
-                }
-
-                if (model.ServiceInvoice.HasEwt)
-                {
-                    withHoldingTaxAmount = _unitOfWork.FilprideCreditMemo.ComputeEwtAmount(Math.Abs(netOfVatAmount), existingSv.ServicePercent / 100m) * -1;
-                }
-
-                if (model.ServiceInvoice.HasWvat)
-                {
-                    withHoldingVatAmount = _unitOfWork.FilprideCreditMemo.ComputeEwtAmount(Math.Abs(netOfVatAmount), 0.05m) * -1;
                 }
 
                 var ledgers = new List<FilprideGeneralLedgerBook>

@@ -8,7 +8,20 @@
 @{
     ViewData["Title"] = "Service Invoice - Preview";
 
-    var decimalFormat = Model.Customer!.CustomerType != nameof(CustomerType.Government) ? SD.Two_Decimal_Format : SD.Four_Decimal_Format;
+    var decimalFormat = Model.Customer!.CustomerType != nameof(CustomerType.Government)
+        ? SD.Two_Decimal_Format
+        : SD.Four_Decimal_Format;
+
+    var vatType = Model.VatType;
+    var grossAmount = Model.Total;
+    var vatableSales = vatType == SD.VatType_Vatable ? DecimalRoundingHelper.ComputeNetOfVat(grossAmount) : 0m;
+    var zeroRatedSales = vatType == SD.VatType_ZeroRated ? grossAmount : 0m;
+    var exemptSales = vatType == SD.VatType_Exempt ? grossAmount : 0m;
+    var discount = Model.Discount;
+    var vatAmount = vatType == SD.VatType_Vatable ? DecimalRoundingHelper.ComputeVatAmount(vatableSales) : 0m;
+    var ewtAmount = Model.CwtAmountPaid + Model.CwtBalance;
+    var wvatAmount = Model.CwVatAmountPaid + Model.CwVatBalance;
+    var amountDue = grossAmount - discount;
 }
 
 <style>
@@ -64,7 +77,7 @@
 </div>
 
 <div class="table-responsive" style="margin-top:20px;">
-    <table class="table-bordered w-100 text-center">
+    <table class="table-bordered document-grid w-100 text-center">
         <tbody>
             <tr>
                 <td><b>PARTICULAR</b></td>
@@ -91,87 +104,65 @@
 </div>
 
 <p style="line-height: 1; margin-top:20px;">
-    Please attach BIR Form 2306 and 2307 to your payment if you deducted Expanded Withholding Tax and Vat.
+    Please attach BIR 2307 to your payment.
 </p>
 
 <div style="margin-top:20px;">
     <table class="w-100">
         <tbody>
             <tr>
-                <td style="width:33%; vertical-align: top;" class="border-1">
+                <td style="width:33%; vertical-align: top;" class="border-1 document-grid">
                     <p class="mb-0" style="margin:10px;">INSTRUCTIONS: <br />@Model.Instructions.ToUpper()</p>
                 </td>
                 <td style="width:33%;">
-                    <table class="table-bordered w-100">
+                    <table class="table-bordered document-grid w-100">
                         <tbody class="text-nowrap">
                             <tr>
-                                <td><p style="margin-left:8%;" class="mb-0"><b>Vatable Sales: </b></p></td>
+                                <td><p style="margin-left:8%;" class="mb-0"><b>VATable Sales: </b></p></td>
                                 <td class="text-end">
-                                    @if (Model.VatType == "Vatable")
-                                    {
-                                        <p class="mb-0">@((Model.Total / 1.12m).ToString(decimalFormat))</p>
-                                    }
+                                    <p class="mb-0">@vatableSales.ToString(decimalFormat)</p>
                                 </td>
                             </tr>
                             <tr>
                                 <td><p style="margin-left:8%;" class="mb-0"><b>Zero-Rated Sales: </b></p></td>
-
                                 <td class="text-end">
-                                    @if (Model.VatType == "Zero-Rated")
-                                    {
-                                        if (Model.Discount > 0)
-                                        {
-                                            <p class="mb-0">@((Model.Total - Model.Discount).ToString(decimalFormat))</p>
-                                        }
-                                        else
-                                        {
-                                            <p class="mb-0">@Model.Total.ToString(decimalFormat)</p>
-                                        }
-
-                                    }
+                                    <p class="mb-0">@zeroRatedSales.ToString(decimalFormat)</p>
                                 </td>
                             </tr>
                             <tr>
                                 <td><p style="margin-left:8%;" class="mb-0"><b>VAT-Exempt Sales: </b></p></td>
-
                                 <td class="text-end">
-                                    @if (Model.VatType == "Exempt")
-                                    {
-                                        if (Model.Discount > 0)
-                                        {
-                                            <p class="mb-0">@((Model.Total - Model.Discount).ToString(decimalFormat))</p>
-                                        }
-                                        else
-                                        {
-                                            <p class="mb-0">@Model.Total.ToString(decimalFormat)</p>
-                                        }
-                                    }
+                                    <p class="mb-0">@exemptSales.ToString(decimalFormat)</p>
                                 </td>
                             </tr>
                             <tr>
-                                <td><p style="margin-left:8%;" class="mb-0"><b>VAT Amount: </b></p></td>
-
+                                <td><p style="margin-left:8%;" class="mb-0"><b>Less Discount: </b></p></td>
                                 <td class="text-end">
-                                    @if (Model.VatType == "Vatable")
-                                    {
-                                        <p class="mb-0">@(((Model.Total / 1.12m) * 0.12m).ToString(decimalFormat))</p>
-                                    }
+                                    <p class="mb-0">@discount.ToString(decimalFormat)</p>
                                 </td>
                             </tr>
-                            <tr>
-                                <td><p style="margin-left:8%;" class="mb-0"><b>Discount: </b></p></td>
-                                <td class="text-end">
-
-                                    @if (Model.Discount > 0)
-                                    {
-                                        <p class="mb-0">@Model.Discount.ToString(decimalFormat)</p>
-                                    }
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><p style="margin-left:8%;" class="mb-0"><b>TOTAL SALES: </b></p></td>
-                                <td class="text-end"><p class="mb-0">@Model.Total.ToString(decimalFormat)</p></td>
-                            </tr>
+                        <tr>
+                            <td><p style="margin-left:8%;" class="mb-0"><b>Add VAT Amount: </b></p></td>
+                            <td class="text-end">
+                                <p class="mb-0">@vatAmount.ToString(decimalFormat)</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><p style="margin-left:8%;" class="mb-0"><b>Less Withholding Tax: </b></p></td>
+                            <td class="text-end">
+                                <p class="mb-0">@ewtAmount.ToString(decimalFormat)</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><p style="margin-left:8%;" class="mb-0"><b>Less Withholding VAT: </b></p></td>
+                            <td class="text-end">
+                                <p class="mb-0">@wvatAmount.ToString(decimalFormat)</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><p style="margin-left:8%;" class="mb-0"><b>Total Amount Due: </b></p></td>
+                            <td class="text-end"><p class="mb-0">@amountDue.ToString(decimalFormat)</p></td>
+                        </tr>
                         </tbody>
                     </table>
                 </td>

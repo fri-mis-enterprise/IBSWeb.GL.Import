@@ -7,6 +7,7 @@ namespace IBS.DataAccess.Repository.Filpride.IRepository
     public interface ICreditMemoRepository: IRepository<FilprideCreditMemo>
     {
         Task<string> GenerateCodeAsync(string type, CancellationToken cancellationToken = default);
+        Task CalculateTaxAmountsAsync(FilprideCreditMemo model, CancellationToken cancellationToken = default);
         Task PostAsync(FilprideCreditMemo model, CancellationToken cancellationToken = default,
             List<AccountTitleDto>? accountTitlesDto = null, bool saveChanges = true);
     }

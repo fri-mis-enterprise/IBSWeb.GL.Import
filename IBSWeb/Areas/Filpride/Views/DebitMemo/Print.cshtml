@@ -14,13 +14,8 @@
     var customerAddress = (Model.SalesInvoice?.CustomerOrderSlip?.CustomerAddress ?? Model.SalesInvoice?.Customer?.CustomerAddress) ?? Model.ServiceInvoice!.CustomerAddress;
     var customerTin = (Model.SalesInvoice?.CustomerOrderSlip?.CustomerTin ?? Model.SalesInvoice?.Customer?.CustomerTin) ?? Model.ServiceInvoice!.CustomerTin;
     var customerBusinessStyle = (Model.SalesInvoice?.CustomerOrderSlip?.BusinessStyle ?? Model.SalesInvoice?.Customer?.BusinessStyle) ?? Model.ServiceInvoice?.CustomerBusinessStyle;
-    var customerVatType = (Model.SalesInvoice?.CustomerOrderSlip?.VatType ?? Model.SalesInvoice?.Customer?.VatType) ?? Model.ServiceInvoice!.VatType;
-
-    var netOfVatAmount = customerVatType == SD.VatType_Vatable ? DecimalRoundingHelper.ComputeNetOfVat(Model.DebitAmount) : Model.DebitAmount;
-    var vatAmount = customerVatType == SD.VatType_Vatable ? DecimalRoundingHelper.ComputeVatAmount(netOfVatAmount) : 0m;
-
+    var vatType = (Model.SalesInvoice?.CustomerOrderSlip?.VatType ?? Model.SalesInvoice?.Customer?.VatType) ?? Model.ServiceInvoice!.VatType;
     var decimalFormat = customerType != nameof(CustomerType.Government) ? SD.Two_Decimal_Format : SD.Four_Decimal_Format;
-
     var invoiceNo = Model.SalesInvoice?.SalesInvoiceNo ?? Model.ServiceInvoice!.ServiceInvoiceNo;
     var invoiceDate = Model.SalesInvoice?.TransactionDate.ToString(SD.Date_Format) ?? Model.ServiceInvoice!.Period.ToString(SD.Date_Format);
     var product = Model.SalesInvoice?.CustomerOrderSlip?.ProductName ?? @Model.ServiceInvoice!.ServiceName;
@@ -28,6 +23,16 @@
     var isApprover =
         User.IsInRole("Admin") ||
         User.IsInRole("FinanceManager");
+
+    var grossAmount = Model.DebitAmount;
+    var vatableSales = vatType == SD.VatType_Vatable ? DecimalRoundingHelper.ComputeNetOfVat(grossAmount) : 0m;
+    var zeroRatedSales = vatType == SD.VatType_ZeroRated ? grossAmount : 0m;
+    var exemptSales = vatType == SD.VatType_Exempt ? grossAmount : 0m;
+    var discount = 0m;
+    var vatAmount = vatType == SD.VatType_Vatable ? DecimalRoundingHelper.ComputeVatAmount(vatableSales) : 0m;
+    var ewtAmount = Model.CwtAmount;
+    var wvatAmount = Model.CwVatAmount;
+    var amountDue = grossAmount - discount;
 }
 
 <style>
@@ -87,7 +92,7 @@
     </div>
 
     <div class="table-responsive" style="margin-top:20px;">
-        <table class="table-bordered w-100 text-center">
+        <table class="table-bordered document-grid w-100 text-center">
             <thead>
                 <tr>
                     <th>INVOICE NO.</th>
@@ -117,55 +122,39 @@
                     </td>
                     <td style="width:40%;">
                         <div>
-                            <table class="w-100">
+                            <table class="w-100 document-grid">
                                 <tbody class="text-nowrap">
                                     <tr>
-                                        <td><p style="height: 9px; margin-left:8%;"><b>Vatable Sales: </b></p></td>
-                                        @if (customerVatType == SD.VatType_Vatable)
-                                        {
-                                            <td class="text-end">@netOfVatAmount.ToString(decimalFormat)</td>
-                                        }
-                                        else
-                                        {
-                                            <td></td>
-                                        }
+                                        <td><p style="height: 9px; margin-left:8%;"><b>VATable Sales: </b></p></td>
+                                        <td class="text-end">@vatableSales.ToString(decimalFormat)</td>
                                     </tr>
                                     <tr>
                                         <td><p style="height: 9px; margin-left:8%;"><b>Zero-Rated Sales: </b></p></td>
-                                        @if (customerVatType == SD.VatType_ZeroRated)
-                                        {
-                                            <td class="text-end">@Model.DebitAmount.ToString(decimalFormat)</td>
-                                        }
-                                        else
-                                        {
-                                            <td></td>
-                                        }
+                                        <td class="text-end">@zeroRatedSales.ToString(decimalFormat)</td>
                                     </tr>
                                     <tr>
                                         <td><p style="height: 9px; margin-left:8%;"><b>VAT-Exempt Sales: </b></p></td>
-                                        @if (customerVatType == SD.VatType_Exempt)
-                                        {
-                                            <td class="text-end">@Model.DebitAmount.ToString(decimalFormat)</td>
-                                        }
-                                        else
-                                        {
-                                            <td></td>
-                                        }
+                                        <td class="text-end">@exemptSales.ToString(decimalFormat)</td>
                                     </tr>
+                                <tr>
+                                    <td><p style="height: 9px; margin-left:8%;"><b>Less Discount: </b></p></td>
+                                    <td class="text-end">@discount.ToString(decimalFormat)</td>
+                                </tr>
+                                <tr>
+                                    <td><p style="height: 9px; margin-left:8%;"><b>Add VAT Amount: </b></p></td>
+                                    <td class="text-end">@vatAmount.ToString(decimalFormat)</td>
+                                </tr>
+                                <tr>
+                                    <td><p style="height: 9px; margin-left:8%;"><b>Less Withholding Tax: </b></p></td>
+                                    <td class="text-end">@ewtAmount.ToString(decimalFormat)</td>
+                                </tr>
+                                <tr>
+                                    <td><p style="height: 9px; margin-left:8%;"><b>Less Withholding VAT: </b></p></td>
+                                    <td class="text-end">@wvatAmount.ToString(decimalFormat)</td>
+                                </tr>
                                     <tr>
-                                        <td><p style="height: 9px; margin-left:8%;"><b>VAT Amount: </b></p></td>
-                                        @if (customerVatType == "Vatable")
-                                        {
-                                            <td class="text-end">@vatAmount.ToString(decimalFormat)</td>
-                                        }
-                                        else
-                                        {
-                                            <td></td>
-                                        }
-                                    </tr>
-                                    <tr>
-                                        <td><p style="height: 9px; margin-left:8%;"><b>TOTAL SALES: </b></p></td>
-                                        <td class="text-end"><p style="height: 9px;">@Model.DebitAmount.ToString(decimalFormat)</p></td>
+                                        <td><p style="height: 9px; margin-left:8%;"><b>Total Amount Due: </b></p></td>
+                                        <td class="text-end"><p style="height: 9px;">@amountDue.ToString(decimalFormat)</p></td>
                                     </tr>
                                 </tbody>
                             </table>

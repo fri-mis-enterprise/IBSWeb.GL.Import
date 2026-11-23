@@ -183,7 +183,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                         po.VoidedBy,
                         po.CanceledBy,
                         po.PostedBy,
-                        po.UnTriggeredQuantity,
+                        po.Supplier!.RequiresPriceAdjustment,
                         po.IsSubPo,
                         po.SubPoSeries,
                         po.IsClosed,
@@ -280,7 +280,6 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     CreatedBy = GetUserFullName(),
                     Type = viewModel.Type,
                     TriggerDate = viewModel.TriggerDate,
-                    UnTriggeredQuantity = !supplier.RequiresPriceAdjustment ? 0 : viewModel.Quantity,
                     PickUpPointId = viewModel.PickUpPointId,
                     VatType = supplier.VatType,
                     TaxType = supplier.TaxType,
@@ -402,7 +401,6 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 existingModel.SupplierId = viewModel.SupplierId;
                 existingModel.ProductId = viewModel.ProductId;
                 existingModel.Quantity = viewModel.Quantity;
-                existingModel.UnTriggeredQuantity = !supplier.RequiresPriceAdjustment ? 0 : existingModel.Quantity;
                 existingModel.Price = DecimalRoundingHelper.RoundToFour(viewModel.Price);
                 existingModel.FinalPrice = existingModel.Price;
                 existingModel.Amount = DecimalRoundingHelper.ComputeAmountFromUnitPrice(viewModel.Quantity, existingModel.Price);
@@ -715,6 +713,22 @@ namespace IBSWeb.Areas.Filpride.Controllers
             worksheet.Cells["X1"].Value = "CanceledDate";
             worksheet.Cells["Y1"].Value = "VoidedBy";
             worksheet.Cells["Z1"].Value = "VoidedDate";
+            worksheet.Cells["AA1"].Value = "SupplierName";
+            worksheet.Cells["AB1"].Value = "SupplierAddress";
+            worksheet.Cells["AC1"].Value = "SupplierTin";
+            worksheet.Cells["AD1"].Value = "ProductName";
+            worksheet.Cells["AE1"].Value = "SupplierSalesOrderNo";
+            worksheet.Cells["AF1"].Value = "Status";
+            worksheet.Cells["AG1"].Value = "IsSubPo";
+            worksheet.Cells["AH1"].Value = "SubPoSeries";
+            worksheet.Cells["AI1"].Value = "CustomerId";
+            worksheet.Cells["AJ1"].Value = "OldPoNo";
+            worksheet.Cells["AK1"].Value = "TriggerDate";
+            worksheet.Cells["AL1"].Value = "UnTriggeredQuantity";
+            worksheet.Cells["AM1"].Value = "PickUpPointId";
+            worksheet.Cells["AN1"].Value = "VatType";
+            worksheet.Cells["AO1"].Value = "TaxType";
+            worksheet.Cells["AP1"].Value = "TypeOfPurchase";
 
             int row = 2;
 
@@ -746,13 +760,25 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 worksheet.Cells[row, 24].Value = item.CanceledDate?.ToString("yyyy-MM-dd HH:mm:ss.ffffff") ?? null;
                 worksheet.Cells[row, 25].Value = item.VoidedBy;
                 worksheet.Cells[row, 26].Value = item.VoidedDate?.ToString("yyyy-MM-dd HH:mm:ss.ffffff") ?? null;
+                worksheet.Cells[row, 27].Value = item.SupplierName;
+                worksheet.Cells[row, 28].Value = item.SupplierAddress;
+                worksheet.Cells[row, 29].Value = item.SupplierTin;
+                worksheet.Cells[row, 30].Value = item.ProductName;
+                worksheet.Cells[row, 31].Value = item.SupplierSalesOrderNo;
+                worksheet.Cells[row, 32].Value = item.Status;
+                worksheet.Cells[row, 33].Value = item.IsSubPo;
+                worksheet.Cells[row, 34].Value = item.SubPoSeries;
+                worksheet.Cells[row, 35].Value = item.CustomerId;
+                worksheet.Cells[row, 36].Value = item.OldPoNo;
+                worksheet.Cells[row, 37].Value = item.TriggerDate != default ? item.TriggerDate.ToString("yyyy-MM-dd") : null;
+                worksheet.Cells[row, 38].Value = item.UnTriggeredQuantity;
+                worksheet.Cells[row, 39].Value = item.PickUpPointId;
+                worksheet.Cells[row, 40].Value = item.VatType;
+                worksheet.Cells[row, 41].Value = item.TaxType;
+                worksheet.Cells[row, 42].Value = item.TypeOfPurchase;
 
                 row++;
             }
-
-            //Set password in Excel
-            worksheet.Protection.IsProtected = true;
-            worksheet.Protection.SetPassword("mis123");
 
             // Convert the Excel package to a byte array
             var excelBytes = await package.GetAsByteArrayAsync();
@@ -776,7 +802,8 @@ namespace IBSWeb.Areas.Filpride.Controllers
 
         [Authorize(Policy = nameof(PurchaseOrder.PurchaseOrderUpdatePrice))]
         [HttpPost]
-        public async Task<IActionResult> UpdatePrice(int purchaseOrderId, decimal volume, decimal price, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdatePrice(int purchaseOrderId, decimal price,
+            CancellationToken cancellationToken)
         {
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
@@ -790,17 +817,26 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 {
                     return Json(new { success = false, message = "Record not found." });
                 }
-                if (existingRecord.Price == price)
+                price = DecimalRoundingHelper.RoundToFour(price);
+                if (price <= 0)
+                {
+                    return Json(new { success = false, message = "Price must be greater than zero." });
+                }
+
+                if (existingRecord.Status == nameof(CosStatus.ForApprovalOfOM))
+                {
+                    return Json(new { success = false, message = "A price update is already awaiting approval." });
+                }
+
+                if (existingRecord.FinalPrice == price)
                 {
                     return Json(new { success = false, message = "Unable to update the cost/price when using the same price." });
                 }
 
-                existingRecord.UnTriggeredQuantity -= volume;
-
                 var actualPrice = new FilpridePOActualPrice
                 {
                     PurchaseOrderId = existingRecord.PurchaseOrderId,
-                    TriggeredVolume = volume,
+                    TriggeredVolume = existingRecord.Quantity,
                     TriggeredPrice = price
                 };
 
@@ -811,7 +847,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     .Select(u => u.Id)
                     .ToListAsync(cancellationToken);
 
-                var message = $"The cost for Purchase Order {existingRecord.PurchaseOrderNo} has been updated by {currentUser}, from {existingRecord.Price:N4} to {price:N4} (gross of VAT). " +
+                var message = $"The cost for Purchase Order {existingRecord.PurchaseOrderNo} has been updated by {currentUser}, from {existingRecord.FinalPrice:N4} to {price:N4} (gross of VAT). " +
                               $"Please review and approve.";
 
                 await _unitOfWork.Notifications.AddNotificationToMultipleUsersAsync(operationManager, message);
@@ -842,14 +878,14 @@ namespace IBSWeb.Areas.Filpride.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Update actual price for purchase order# {existingRecord.PurchaseOrderNo}, from {existingRecord.Price:N4} to {price:N4} (gross of VAT).", "Purchase Order");
+                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Update actual price for purchase order# {existingRecord.PurchaseOrderNo}, from {existingRecord.FinalPrice:N4} to {price:N4} (gross of VAT).", "Purchase Order");
                 await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
                 await transaction.CommitAsync(cancellationToken);
 
-                TempData["success"] = $"The price for {existingRecord.PurchaseOrderNo} has been updated, from {existingRecord.Price:N4} to {price:N4} (gross of VAT).";
+                TempData["success"] = $"The price for {existingRecord.PurchaseOrderNo} has been updated, from {existingRecord.FinalPrice:N4} to {price:N4} (gross of VAT).";
 
                 return Json(new { success = true, message = TempData["success"] });
             }
@@ -893,9 +929,8 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 actualPrices.ApprovedDate = DateTimeHelper.GetCurrentPhilippineTime();
                 actualPrices.IsApproved = true;
 
+                existingRecord.FinalPrice = DecimalRoundingHelper.RoundToFour(actualPrices.TriggeredPrice);
                 await _unitOfWork.FilpridePurchaseOrder.UpdateActualCostOnSalesAndReceiptsAsync(actualPrices, cancellationToken);
-
-                existingRecord.FinalPrice = actualPrices.TriggeredPrice;
                 existingRecord.Status = nameof(Status.Posted);
 
                 #region --Audit Trail Recording

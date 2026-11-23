@@ -475,6 +475,16 @@ bg-success {
         border-color: #578553;
     }
 
+.document-grid {
+    border-collapse: collapse;
+}
+
+.document-grid,
+.document-grid th,
+.document-grid td {
+    border: 1px solid #000;
+}
+
 @media print {
     body {
         -webkit-print-color-adjust: exact !important;
